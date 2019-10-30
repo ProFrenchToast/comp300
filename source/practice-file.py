@@ -1,10 +1,8 @@
-# TODO: make a cnn that classifies handwritting
-
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import gym
-import baselines
+import torch
 
 def train_on_mnist():
 
@@ -26,12 +24,17 @@ def train_on_mnist():
 
     model.fit(x_train,y_train, epochs= 3)
     model.evaluate(x_test, y_test, verbose=2)
+    predictions = model.predict(x_test)
 
-    plt.figure()
-    plt.imshow(x_train[0])
-    plt.colorbar()
-    plt.grid(False)
-    plt.show()
+    for i in range(5):
+        predictedValue = np.argmax(predictions[i])
+        plt.figure()
+        plt.title("Actual:" + str(y_test[i]), loc='left')
+        plt.title("prediction: " + str(predictedValue))
+        plt.imshow(x_test[i])
+        plt.colorbar()
+        plt.grid(False)
+        plt.show()
 
 
 # Todo: make a cnn that approximates the reward for a given observation
@@ -51,13 +54,54 @@ def train_on_gym():
     env.close()
 
 # Todo: make a base ppo agent and train on an env and save demos
+#* actually load a pretrained agent and then render 10 runs of the env
 def train_basePPO():
-    env = gym.make('CartPole-v0')
-    model = baselines.PPO2(baselines.common.policies.MlpPolicy, env)
-    model.learn(total_timesteps=1000)
+    from baselines.common.policies import build_policy
+    from baselines.ppo2.model import Model
 
+    #tensor flow stuff i dont understand
+    graph = tf.Graph()
+    config = tf.ConfigProto(device_count={'GPU':0})
+
+    session = tf.Session(graph=graph, config = config)
+    with graph.as_default():
+        with session.as_default():
+            #make the env and the build policy and the input and output spaces
+            env = gym.make('BreakoutNoFrameskip-v0')
+            policy = build_policy(env, 'cnn')
+            observation_space = env.observation_space
+            action_space = env.action_space
+
+            #now make the method to build the network
+            make_model = lambda : Model(policy=policy, ob_space=observation_space, ac_space=action_space, nbatch_act=1,
+                                        nbatch_train=1, nsteps=1, ent_coef=0, vf_coef=0, max_grad_norm=0)
+            #make and learn the model
+            model = make_model()
+
+    model_path = "~/Downloads/03600"
+    model.load(model_path)
+
+    for i_episode in range(5):
+        observation = env.reset()
+        reward = 0
+        done = False
+        t = 0
+        while True:
+            t = t+1
+            env.render()
+            action, _, _, _ = model.act_model.step(observation)
+            observation, reward, done, info = env.step(action)
+            if done:
+                print("Episode finished after {} timesteps".format(t + 1))
+                break
+    env.close()
+
+
+
+
+    #try it out and render
 # Todo: make a cnn that can predict the ranking of demos
 
 
 
-train_on_gym()
+train_basePPO()
