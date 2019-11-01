@@ -4,6 +4,37 @@ import matplotlib.pyplot as plt
 import gym
 import torch
 
+from baselines.common.policies import build_policy
+from baselines.ppo2.model import Model
+from baselines.common.cmd_util import make_vec_env
+from baselines.common.vec_env.vec_frame_stack import VecFrameStack
+##cloned
+class PPO2Agent(object):
+    def __init__(self, env, env_type, stochastic):
+        ob_space = env.observation_space
+        ac_space = env.action_space
+        self.stochastic = stochastic
+
+        if env_type == 'atari':
+            policy = build_policy(env,'cnn')
+        elif env_type == 'mujoco':
+            policy = build_policy(env,'mlp')
+
+        make_model = lambda : Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=1, nbatch_train=1,
+                        nsteps=1, ent_coef=0., vf_coef=0.,
+                        max_grad_norm=0.)
+        self.model = make_model()
+
+    def load(self, path):
+        self.model.load(path)
+
+    def act(self, observation, reward, done):
+        if self.stochastic:
+            a,v,state,neglogp = self.model.step(observation)
+        else:
+            a = self.model.act_model.act(observation)
+        return a
+
 def train_on_mnist():
 
     # create the dataset
@@ -38,7 +69,7 @@ def train_on_mnist():
 
 
 # Todo: make a cnn that approximates the reward for a given observation
-def train_on_gym():
+def displaygym():
     #create an env
     env = gym.make('CartPole-v0')
     for i_episode in range(20):
@@ -55,33 +86,29 @@ def train_on_gym():
 
 # Todo: make a base ppo agent and train on an env and save demos
 #* actually load a pretrained agent and then render 10 runs of the env
-def train_basePPO():
-    from baselines.common.policies import build_policy
-    from baselines.ppo2.model import Model
+def load_basePPO_and_Display():
 
-    #tensor flow stuff i dont understand
-    graph = tf.Graph()
-    config = tf.ConfigProto(device_count={'GPU':0})
+    from baselines.common.vec_env.vec_normalize import VecNormalize
+    from baselines.common.vec_env.vec_video_recorder import VecVideoRecorder
+    model_path = "~/pong_20M_ppo2"
+    env_id = 'PongNoFrameskip-v4'
+    env_type = 'atari'
+    record = False
 
-    session = tf.Session(graph=graph, config = config)
-    with graph.as_default():
-        with session.as_default():
-            #make the env and the build policy and the input and output spaces
-            env = gym.make('BreakoutNoFrameskip-v0')
-            policy = build_policy(env, 'cnn')
-            observation_space = env.observation_space
-            action_space = env.action_space
+    env = make_vec_env(env_id, env_type, 1, 0,
+                       wrapper_kwargs={
+                           'clip_rewards': False,
+                           'episode_life': False,
+                       })
+    if record:
+        env = VecVideoRecorder(env, './videos/', lambda steps: True, 2000000)
 
-            #now make the method to build the network
-            make_model = lambda : Model(policy=policy, ob_space=observation_space, ac_space=action_space, nbatch_act=1,
-                                        nbatch_train=1, nsteps=1, ent_coef=0, vf_coef=0, max_grad_norm=0)
-            #make and learn the model
-            model = make_model()
+    env = VecFrameStack(env, 4)
 
-    model_path = "~/Downloads/03600"
-    model.load(model_path)
+    agent = PPO2Agent(env, env_type, True)
+    agent.load(model_path)
 
-    for i_episode in range(5):
+    for i_episode in range(1):
         observation = env.reset()
         reward = 0
         done = False
@@ -89,12 +116,13 @@ def train_basePPO():
         while True:
             t = t+1
             env.render()
-            action, _, _, _ = model.act_model.step(observation)
+            action = agent.act(observation, reward, done)
             observation, reward, done, info = env.step(action)
             if done:
                 print("Episode finished after {} timesteps".format(t + 1))
                 break
     env.close()
+    env.venv.close()
 
 
 
@@ -104,4 +132,4 @@ def train_basePPO():
 
 
 
-train_basePPO()
+load_basePPO_and_Display()
