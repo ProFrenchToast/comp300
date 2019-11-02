@@ -43,20 +43,23 @@ def generate_demos_from_checkpoints(env, agent, model_dir, demosPerModel):
 
             currentReward = 0
             currentObservation = env.reset()
+            #the shape of the observations is (1,84,84, 4) so take only the first slice to remove the first dimension
+            shapedObservations = currentObservation[0]
             timeSteps = 0
             done = False
 
             #run the demo
             while True:
-                observations.append(currentObservation)
+                observations.append(shapedObservations)
                 totalReward += currentReward
 
                 action = agent.act(currentObservation,  currentReward, done)
                 currentObservation, currentReward, done, info = env.step(action)
+                shapedObservations = currentObservation[0]
                 timeSteps += 1
 
                 if done:
-                    observations.append(currentObservation)
+                    observations.append(shapedObservations)
                     totalReward += currentReward
                     print("generated demo from model at {}, demo length: {}, total reward: {}".
                           format(model_path, timeSteps, totalReward))
@@ -71,10 +74,7 @@ def generate_demos_from_checkpoints(env, agent, model_dir, demosPerModel):
 
     return TrajectoryObservations, TrajectoryTotalRewards
 
-
-#todo: run each model and save the demonstrations
-
-#todo: make nn for the demos
+#todo: make a method to split the trajectories into smaller subsets + make the labels
 
 #todo: train the nn on the saved demos and display acc
 
@@ -93,3 +93,16 @@ if __name__ == '__main__':
     agent = PPO2Agent(env, 'atari', True)
 
     trajectories, rewards = generate_demos_from_checkpoints(env, agent, model_path, 1)
+
+    #now try to create the network and see the output
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    rewardNetwork = RewardNetwork()
+    rewardNetwork.to(device)
+    trajectory_i = np.array(trajectories[0])
+    trajectory_j = np.array(trajectories[1])
+    traj_i = torch.from_numpy(trajectory_i).float().to(device)
+    traj_j = torch.from_numpy(trajectory_j).float().to(device)
+
+    output, abs_rewards = rewardNetwork.forward(traj_i, traj_j)
+
+    print(str(output))
