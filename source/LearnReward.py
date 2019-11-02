@@ -4,7 +4,6 @@ from AgentClasses import *
 from baselines.common.cmd_util import make_vec_env
 
 
-#todo: load a directory of checkpointed models
 #a method to find all the models in a given dir that are just numbers
 def Find_all_Models(model_dir):
     from os import listdir
@@ -12,7 +11,12 @@ def Find_all_Models(model_dir):
     import re
 
     checkpoints = []
-    allFiles = [file for file in listdir(model_dir) if isfile(join(model_dir, file))]
+    filesandDirs = listdir(model_dir)
+    allFiles = []
+    for i in filesandDirs:
+        if isfile(join(model_dir, i)):
+            allFiles.append(i)
+
     for file in allFiles:
         if re.match('^[0-9]+$',file.title()):
             checkpoints.append(file.title())
@@ -22,7 +26,7 @@ def Find_all_Models(model_dir):
 #given a dir and an environment plus an agent load every checkpointed model and run it for some demos
 def generate_demos_from_checkpoints(env, agent, model_dir, demosPerModel):
     checkpoints = Find_all_Models(model_dir)
-    print('found models: ' + checkpoints)
+    print('found models: ' + str(checkpoints))
 
 
     TrajectoryObservations = [] # the set of observations for each demo
@@ -48,7 +52,7 @@ def generate_demos_from_checkpoints(env, agent, model_dir, demosPerModel):
                 totalReward += currentReward
 
                 action = agent.act(currentObservation,  currentReward, done)
-                currentObservation, currentReward, done = env.step(action)
+                currentObservation, currentReward, done, info = env.step(action)
                 timeSteps += 1
 
                 if done:
@@ -76,7 +80,7 @@ def generate_demos_from_checkpoints(env, agent, model_dir, demosPerModel):
 
 
 if __name__ == '__main__':
-    model_path = "~/Downloads/breakout_25"
+    model_path = "/home/patrick/Downloads/breakout_25"
     env_id = 'BreakoutNoFrameskip-v4'
     env_type = 'atari'
 
@@ -86,6 +90,6 @@ if __name__ == '__main__':
                            'episode_life': False,
                        })
     env = VecFrameStack(env, 4)
-    agent = PPO2Agent(env)
+    agent = PPO2Agent(env, 'atari', True)
 
     trajectories, rewards = generate_demos_from_checkpoints(env, agent, model_path, 1)

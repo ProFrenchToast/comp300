@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-import matplotlib.pyplot as plt
+
 import gym
 import torch
 
@@ -36,7 +36,7 @@ class PPO2Agent(object):
         return a
 
 def train_on_mnist():
-
+    import matplotlib.pyplot as plt
     # create the dataset
     mnist = tf.keras.datasets.mnist
 
@@ -68,7 +68,6 @@ def train_on_mnist():
         plt.show()
 
 
-# Todo: make a cnn that approximates the reward for a given observation
 def displaygym():
     #create an env
     env = gym.make('CartPole-v0')
@@ -84,7 +83,6 @@ def displaygym():
                 break
     env.close()
 
-# Todo: make a base ppo agent and train on an env and save demos
 #* actually load a pretrained agent and then render 10 runs of the env
 def load_basePPO_and_Display():
 
@@ -127,9 +125,4 @@ def load_basePPO_and_Display():
 
 
 
-    #try it out and render
-# Todo: make a cnn that can predict the ranking of demos
-
-
-
-load_basePPO_and_Display()
+train_on_mnist()

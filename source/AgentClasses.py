@@ -39,13 +39,13 @@ class RandomAgent(Agent):
 #currently uses random agents as a stub
 class PPO2Agent(RandomAgent):
     def __init__(self, env, env_type, stochastic):
-        super.__init__()
+        super(PPO2Agent,self).__init__(env)
 
     def load(self, path):
         print("loaded model:" + path)
 
     def act(self, observation, reward, done):
-        return super.act()
+        return super(PPO2Agent, self).act(observation, reward, done)
 
 
 #todo: implement both of them
