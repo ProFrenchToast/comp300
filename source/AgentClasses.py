@@ -6,7 +6,7 @@ import torch.nn.functional as functional
 
 class RewardNetwork (nn.Module):
     #setup the nn by initialising the layers plus other variables
-    def __init__(self):
+    def __init__(self, lossFunction):
         super().__init__()
 
     #todo: try different network configurations
@@ -17,6 +17,8 @@ class RewardNetwork (nn.Module):
         self.conv4 = nn.Conv2d(16, 16, 3, stride=1)
         self.fc1 = nn.Linear(784, 64)
         self.fc2 = nn.Linear(64, 1)
+
+        self.lossFunction = lossFunction
 
     #use the nn to predict the reward for a given trajectory
     def predict_reward(self, trajectory):

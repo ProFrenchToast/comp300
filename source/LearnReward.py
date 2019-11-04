@@ -2,6 +2,8 @@ from baselines.common.vec_env import VecFrameStack
 
 from AgentClasses import *
 from baselines.common.cmd_util import make_vec_env
+import torch.optim as optim
+import torch.nn as nn
 
 
 #a method to find all the models in a given dir that are just numbers
@@ -121,7 +123,7 @@ def create_labels(demonstrations, demo_rewards, num_full_trajectories, num_sub_t
         #now find the start and end points for the sub trajectories
         sub_trajectory_length = np.random.randint(min_snippet_length, max_snippet_length)
         #find the latest starting point in each demo to avoid out of bounds
-        ti_latest_start = len(demonstrations[tj_index]) - sub_trajectory_length -1
+        ti_latest_start = len(demonstrations[ti_index]) - sub_trajectory_length -1
         tj_latest_start = len(demonstrations[tj_index]) - sub_trajectory_length -1
 
         ti_start = np.random.randint(0, ti_latest_start)
@@ -141,6 +143,8 @@ def create_labels(demonstrations, demo_rewards, num_full_trajectories, num_sub_t
         else:
             label = 1
 
+        if len(traj_i) ==0 or len(traj_j) == 0:
+            print("found size of 0")
         trajectory_observations.append((traj_i, traj_j))
         trajectory_labels.append(label)
 
@@ -179,7 +183,77 @@ def create_training_test_labels(ratio, demonstrations, demo_rewards, num_full_tr
     return training_observations, training_labels, testing_observations, testing_labels
 
 
-#todo: train the nn on the saved demos and display acc
+
+def train_reward_network(rewardNetwork, optimiser, training_trajectories, training_labels, training_epochs, checkpoint_dir = ""):
+    #first check if gpu is available
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print("training using {}".format(device))
+
+    saveCheckpoints = True
+    cumulative_loss = 0
+    if checkpoint_dir == "":
+        print("no checkpoint directory set, no checkpoints will be saved")
+        saveCheckpoints = False
+
+    #zip the inputs and labels together to shuffle them for each epoch
+    training_data = list(zip(training_trajectories, training_labels))
+    for epoch in range(training_epochs):
+        np.random.shuffle(training_data)
+        shuffled_trajectories, shuffled_labels = zip(*training_data)
+        epoch_loss = 0
+
+        #now loop over every trajectory in the dataset
+        for i in range(len(shuffled_labels)):
+            traj_i, traj_j = shuffled_trajectories[i]
+            labels = np.array([shuffled_labels[i]])
+            traj_i = np.array(traj_i)
+            traj_j = np.array(traj_j)
+            traj_i = torch.from_numpy(traj_i).float().to(device)
+            traj_j = torch.from_numpy(traj_j).float().to(device)
+            labels = torch.from_numpy(labels).to(device)
+
+            #print("traj_I:{}, Traj_J: {}".format(traj_i.size(), traj_j.size()))
+
+            #zero out the gradient before applying to netwrok
+            optimiser.zero_grad()
+
+            #apply forwards on the trajectories then apply backwards to get the gradient from the loss tensor
+            output, abs_reward = rewardNetwork.forward(traj_i, traj_j)
+            output = output.unsqueeze(0)
+            loss = rewardNetwork.lossFunction(output, labels)
+            loss.backward()
+            optimiser.step()
+
+            loss_value = loss.item()
+            cumulative_loss += loss_value
+            epoch_loss += loss_value
+
+        epoch_avg_loss = epoch_loss / len(shuffled_labels)
+        print("Epoch: {}, Cumulative loss: {}, loss this epoch: {}". format(epoch, cumulative_loss, epoch_avg_loss))
+        if saveCheckpoints:
+            print("saving checkpoint {} to dir: {}".format(epoch, checkpoint_dir))
+            torch.save(rewardNetwork.state_dict((), checkpoint_dir))
+    print("finished training reward network")
+
+
+def calc_accuracy(reward_network, test_trajectories, testing_lables):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    num_correct = 0.
+    with torch.no_grad():
+        for i in range(len(test_trajectories)):
+            label = testing_lables[i]
+            traj_i, traj_j = test_trajectories[i]
+            traj_i = np.array(traj_i)
+            traj_j = np.array(traj_j)
+            traj_i = torch.from_numpy(traj_i).float().to(device)
+            traj_j = torch.from_numpy(traj_j).float().to(device)
+
+            #forward to get logits
+            outputs, abs_return = reward_network.forward(traj_i, traj_j)
+            _, pred_label = torch.max(outputs,0)
+            if pred_label.item() == label:
+                num_correct += 1.
+    return num_correct / len(test_trajectories)
 
 
 if __name__ == '__main__':
@@ -195,7 +269,19 @@ if __name__ == '__main__':
     env = VecFrameStack(env, 4)
     agent = PPO2Agent(env, 'atari', True)
 
-    trajectories, rewards = generate_demos_from_checkpoints(env, agent, model_path, 1)
+    trajectories, rewards = generate_demos_from_checkpoints(env, agent, model_path, 5)
     trajectories = np.array(trajectories)
     rewards = np.array(rewards)
-    training_obs, training_labels, test_obs, test_labels = create_training_test_labels(0.9, trajectories, rewards, 20, 80, 50, 100)
+    training_obs, training_labels, test_obs, test_labels = create_training_test_labels(0.9, trajectories, rewards, 0, 1000, 50, 100)
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    loss = nn.CrossEntropyLoss()
+    learning_rate = 0.00005
+    weight_decay = 0
+    network = RewardNetwork(loss)
+    network.to(device)
+    optimiser = optim.Adam(network.parameters(), lr=learning_rate, weight_decay=weight_decay)
+
+    train_reward_network(network, optimiser, training_obs, training_labels, 5)
+    accuracy = calc_accuracy(network, test_obs, test_labels)
+    print("accuracy of test network is {}%".format(accuracy))
