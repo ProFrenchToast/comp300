@@ -86,10 +86,16 @@ def displaygym():
 #* actually load a pretrained agent and then render 10 runs of the env
 def load_basePPO_and_Display():
 
+    seed = 0
+    # set seeds
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    tf.set_random_seed(seed)
+
     from baselines.common.vec_env.vec_normalize import VecNormalize
     from baselines.common.vec_env.vec_video_recorder import VecVideoRecorder
-    model_path = "~/pong_20M_ppo2"
-    env_id = 'PongNoFrameskip-v4'
+    model_path = "~/Downloads/breakout_25/00001"
+    env_id = 'BreakoutNoFrameskip-v4'
     env_type = 'atari'
     record = False
 
@@ -123,6 +129,4 @@ def load_basePPO_and_Display():
     env.venv.close()
 
 
-
-
-train_on_mnist()
+load_basePPO_and_Display()
