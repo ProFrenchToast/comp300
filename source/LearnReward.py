@@ -4,13 +4,13 @@ from AgentClasses import *
 from baselines.common.cmd_util import make_vec_env
 import torch.optim as optim
 import torch.nn as nn
+from os import listdir
+from os.path import isfile, join
+import re
 
 
 #a method to find all the models in a given dir that are just numbers
 def Find_all_Models(model_dir):
-    from os import listdir
-    from os.path import isfile, join
-    import re
 
     checkpoints = []
     filesandDirs = listdir(model_dir)
@@ -36,8 +36,8 @@ def generate_demos_from_checkpoints(env, agent, model_dir, demosPerModel):
 
     #now loop over each model and load it
     for model in checkpoints:
-        model_path = model_dir + '/' + model
-        agent.load(model_path)
+        model_path = join(model_dir, model)
+        #agent.load("/home/patrick/Downloads/breakout_25/00001")
 
         for demo in range(demosPerModel):
             observations = []
@@ -257,7 +257,7 @@ def calc_accuracy(reward_network, test_trajectories, testing_lables):
 
 
 if __name__ == '__main__':
-    model_path = "/home/patrick/Downloads/breakout_25"
+    model_path = "/home/patrick/models/breakout-ppo2"
     env_id = 'BreakoutNoFrameskip-v4'
     env_type = 'atari'
 
@@ -268,11 +268,15 @@ if __name__ == '__main__':
                        })
     env = VecFrameStack(env, 4)
     agent = PPO2Agent(env, 'atari', True)
+    #agent.load("/home/patrick/Downloads/breakout_25/00001")
 
-    trajectories, rewards = generate_demos_from_checkpoints(env, agent, model_path, 5)
+    trajectories, rewards = generate_demos_from_checkpoints(env, agent, model_path, 10)
     trajectories = np.array(trajectories)
     rewards = np.array(rewards)
     training_obs, training_labels, test_obs, test_labels = create_training_test_labels(0.9, trajectories, rewards, 0, 1000, 50, 100)
+    trajectories = 0
+    rewards = 0
+
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     loss = nn.CrossEntropyLoss()
@@ -282,6 +286,7 @@ if __name__ == '__main__':
     network.to(device)
     optimiser = optim.Adam(network.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
-    train_reward_network(network, optimiser, training_obs, training_labels, 5)
+    train_reward_network(network, optimiser, training_obs, training_labels, 3)
+    torch.save(network.state_dict(), "/home/patrick/models/breakout-reward/test3")
     accuracy = calc_accuracy(network, test_obs, test_labels)
     print("accuracy of test network is {}%".format(accuracy))

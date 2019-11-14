@@ -2,7 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as functional
-
+from baselines.common.policies import build_policy
+from baselines.ppo2.model import Model
 
 class RewardNetwork (nn.Module):
     #setup the nn by initialising the layers plus other variables
@@ -65,15 +66,31 @@ class RandomAgent(Agent):
 
 #a base class for ppo2 agents
 #currently uses random agents as a stub
-class PPO2Agent(RandomAgent):
+class PPO2Agent(Agent):
     def __init__(self, env, env_type, stochastic):
-        super(PPO2Agent,self).__init__(env)
+        ob_space = env.observation_space
+        ac_space = env.action_space
+        self.stochastic = stochastic
+
+        if env_type == 'atari':
+            policy = build_policy(env, 'cnn')
+        elif env_type == 'mujoco':
+            policy = build_policy(env, 'mlp')
+
+        make_model = lambda: Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=1, nbatch_train=1,
+                                   nsteps=1, ent_coef=0., vf_coef=0.,
+                                   max_grad_norm=0.)
+        self.model = make_model()
 
     def load(self, path):
-        print("loaded model:" + path)
+        self.model.load(path)
 
     def act(self, observation, reward, done):
-        return super(PPO2Agent, self).act(observation, reward, done)
+        if self.stochastic:
+            a, v, state, neglogp = self.model.step(observation)
+        else:
+            a = self.model.act_model.act(observation)
+        return a
 
 
 #todo: implement both of them
