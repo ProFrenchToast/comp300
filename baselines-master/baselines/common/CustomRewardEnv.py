@@ -2,12 +2,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as functional
-from baselines.common.policies import build_policy
-from baselines.ppo2.model import Model
+from baselines.common.vec_env import VecEnvWrapper
 
-class RewardNetwork (nn.Module):
+#this is a copy of the reward network from AgentClasses.py
+class AtariRewardNetwork (nn.Module):
     #setup the nn by initialising the layers plus other variables
-    def __init__(self, lossFunction):
+    def __init__(self):
         super().__init__()
 
     #todo: try different network configurations
@@ -18,8 +18,6 @@ class RewardNetwork (nn.Module):
         self.conv4 = nn.Conv2d(16, 16, 3, stride=1)
         self.fc1 = nn.Linear(784, 64)
         self.fc2 = nn.Linear(64, 1)
-
-        self.lossFunction = lossFunction
 
     #use the nn to predict the reward for a given trajectory
     def predict_reward(self, trajectory):
@@ -35,8 +33,8 @@ class RewardNetwork (nn.Module):
         x = x.view(-1, 784)
         x = functional.leaky_relu(self.fc1(x))
         x = self.fc2(x) # this gives a single value FOR EACH OBSERVATION GIVEN and so must be summed
-        reward = torch.sum(x) #sum up the reward for each state in the trajectory
-        abs_reward = torch.sum(torch.abs(x))
+        reward = x
+        abs_reward = torch.abs(x)
         return reward, abs_reward
 
     #use the nn on two trajectories to find the better one
@@ -47,49 +45,27 @@ class RewardNetwork (nn.Module):
         #note the distribution needs to be unsqueezed to have an extra dimension because it need to be a batch of size 1
         return torch.cat((reward_i.unsqueeze(0), reward_j.unsqueeze(0)), 0), (abs_reward_i + abs_reward_j)
 
-
-#a generic class to hold all types of agents
-class Agent (object):
-    def __init__(self, env):
-        return
-
-    def act(self, observation, reward, done):
-        return
-
-class RandomAgent(Agent):
-    #a simple agent that just takes a random action
-    def __init__(self, env):
-        self.action_space = env.action_space
-
-    def act(self, observation, reward, done):
-        return self.action_space.sample()
-
-#a base class for ppo2 agents
-#currently uses random agents as a stub
-class PPO2Agent(Agent):
-    def __init__(self, env, env_type, stochastic):
-        ob_space = env.observation_space
-        ac_space = env.action_space
-        self.stochastic = stochastic
-
-        if env_type == 'atari':
-            policy = build_policy(env, 'cnn')
-        elif env_type == 'mujoco':
-            policy = build_policy(env, 'mlp')
-
-        make_model = lambda: Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=1, nbatch_train=1,
-                                   nsteps=1, ent_coef=0., vf_coef=0.,
-                                   max_grad_norm=0.)
-        self.model = make_model()
-
-    def load(self, path):
-        self.model.load(path)
-
-    def act(self, observation, reward, done):
-        if self.stochastic:
-            a, v, state, neglogp = self.model.step(observation)
+class VecPytorchRewardEnv(VecEnvWrapper):
+    def __init__(self, venv, reward_net_path, env_name, env_type):
+        VecEnvWrapper.__init__(self, venv)
+        self.env_name = env_name
+        if env_type == 'retro' or env_type == 'atari':
+            self.reward_net = AtariRewardNetwork()
         else:
-            a = self.model.act_model.act(observation)
-        return a
+            print("error no custom reward defined for {}:{} environment".format(env_name, env_type))
+        self.reward_net.load_state_dict(torch.load(reward_net_path))
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.reward_net.to(self.device)
 
+    def step_wait(self):
+        obs, rews, news, infos = self.venv.step_wait()
 
+        with torch.no_grad():
+            customReward, absCustomReward = self.reward_net.predict_reward(torch.from_numpy(np.array(obs)).float().to(self.device))
+        customReward = customReward.cpu().numpy().squeeze()
+        return obs, customReward, news, infos
+
+    def reset(self):
+        obs = self.venv.reset()
+
+        return obs

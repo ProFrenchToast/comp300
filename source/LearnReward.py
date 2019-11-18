@@ -37,7 +37,7 @@ def generate_demos_from_checkpoints(env, agent, model_dir, demosPerModel):
     #now loop over each model and load it
     for model in checkpoints:
         model_path = join(model_dir, model)
-        #agent.load("/home/patrick/Downloads/breakout_25/00001")
+        agent.load(model_path)
 
         for demo in range(demosPerModel):
             observations = []
@@ -232,7 +232,7 @@ def train_reward_network(rewardNetwork, optimiser, training_trajectories, traini
         print("Epoch: {}, Cumulative loss: {}, loss this epoch: {}". format(epoch, cumulative_loss, epoch_avg_loss))
         if saveCheckpoints:
             print("saving checkpoint {} to dir: {}".format(epoch, checkpoint_dir))
-            torch.save(rewardNetwork.state_dict((), checkpoint_dir))
+            torch.save(rewardNetwork.state_dict((), checkpoint_dir+ "/" + epoch))
     print("finished training reward network")
 
 
@@ -257,7 +257,7 @@ def calc_accuracy(reward_network, test_trajectories, testing_lables):
 
 
 if __name__ == '__main__':
-    model_path = "/home/patrick/models/breakout-ppo2"
+    model_path = "/home/patrick/models/BreakoutNoFrameskip-v4-groundTruth"
     env_id = 'BreakoutNoFrameskip-v4'
     env_type = 'atari'
 
@@ -270,10 +270,10 @@ if __name__ == '__main__':
     agent = PPO2Agent(env, 'atari', True)
     #agent.load("/home/patrick/Downloads/breakout_25/00001")
 
-    trajectories, rewards = generate_demos_from_checkpoints(env, agent, model_path, 10)
+    trajectories, rewards = generate_demos_from_checkpoints(env, agent, model_path, 1)
     trajectories = np.array(trajectories)
     rewards = np.array(rewards)
-    training_obs, training_labels, test_obs, test_labels = create_training_test_labels(0.9, trajectories, rewards, 0, 1000, 50, 100)
+    training_obs, training_labels, test_obs, test_labels = create_training_test_labels(0.9, trajectories, rewards, 0, 6000, 50, 100)
     trajectories = 0
     rewards = 0
 
@@ -286,7 +286,7 @@ if __name__ == '__main__':
     network.to(device)
     optimiser = optim.Adam(network.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
-    train_reward_network(network, optimiser, training_obs, training_labels, 3)
-    torch.save(network.state_dict(), "/home/patrick/models/breakout-reward/test3")
+    train_reward_network(network, optimiser, training_obs, training_labels, 5, "/home/patrick/models/breakout-reward/checkpoint")
+    torch.save(network.state_dict(), "/home/patrick/models/breakout-reward/fullTest.params")
     accuracy = calc_accuracy(network, test_obs, test_labels)
     print("accuracy of test network is {}%".format(accuracy))

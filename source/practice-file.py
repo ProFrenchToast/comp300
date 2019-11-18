@@ -1,6 +1,8 @@
 import tensorflow as tf
 import numpy as np
 
+import time
+
 import gym
 import torch
 
@@ -94,7 +96,7 @@ def load_basePPO_and_Display():
 
     from baselines.common.vec_env.vec_normalize import VecNormalize
     from baselines.common.vec_env.vec_video_recorder import VecVideoRecorder
-    model_path = "~/Downloads/breakout_25/00001"
+    model_path = "~/models/breakout-IRL/test1"
     env_id = 'BreakoutNoFrameskip-v4'
     env_type = 'atari'
     record = False
@@ -127,6 +129,7 @@ def load_basePPO_and_Display():
                 break
     env.close()
     env.venv.close()
+
 
 
 load_basePPO_and_Display()

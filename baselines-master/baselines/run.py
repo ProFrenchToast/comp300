@@ -91,6 +91,10 @@ def build_env(args):
     seed = args.seed
 
     env_type, env_id = get_env_type(args)
+    print(env_id)
+    # extract the agc_env_name
+    noskip_idx = env_id.find("NoFrameskip")
+    env_name = env_id[:noskip_idx].lower()
 
     if env_type in {'atari', 'retro'}:
         if alg == 'deepq':
@@ -114,6 +118,17 @@ def build_env(args):
 
         if env_type == 'mujoco':
             env = VecNormalize(env, use_tf=True)
+
+    if args.custom_reward != '':
+        import baselines.common.CustomRewardEnv as CustomRewardEnv
+
+        if args.custom_reward == 'pytorch':
+            if args.custom_reward_path == '':
+                assert False, 'no path for reward model'
+            else:
+                env = CustomRewardEnv.VecPytorchRewardEnv(env, args.custom_reward_path, env_name, env_type)
+        else:
+            assert False, 'no such wrapper exist'
 
     return env
 
