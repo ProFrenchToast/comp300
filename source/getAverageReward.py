@@ -34,7 +34,7 @@ def getAvgReward(agent, env, iterations):
     return mean, minR, maxR, std
 
 if __name__ == '__main__':
-    model_path = "/home/patrick/models/BreakoutNoFrameskip-v4-groundTruth/20000000"
+    model_path = "/home/patrick/models/breakout-reward-RL2/breakout_50M_ppo2"
     env_id = 'BreakoutNoFrameskip-v4'
     env_type = 'atari'
 

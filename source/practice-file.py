@@ -96,7 +96,7 @@ def load_basePPO_and_Display():
 
     from baselines.common.vec_env.vec_normalize import VecNormalize
     from baselines.common.vec_env.vec_video_recorder import VecVideoRecorder
-    model_path = "~/models/breakout-IRL/test1"
+    model_path = "~/models/breakout-reward-RL2/breakout_50M_ppo2"
     env_id = 'BreakoutNoFrameskip-v4'
     env_type = 'atari'
     record = False
@@ -111,12 +111,14 @@ def load_basePPO_and_Display():
 
     env = VecFrameStack(env, 4)
 
-    agent = PPO2Agent(env, env_type, True)
+    from AgentClasses import PPO2Agent as realAgent
+    agent = realAgent(env, env_type, True)
     agent.load(model_path)
 
     for i_episode in range(1):
         observation = env.reset()
         reward = 0
+        totalReward = 0
         done = False
         t = 0
         while True:
@@ -124,8 +126,9 @@ def load_basePPO_and_Display():
             env.render()
             action = agent.act(observation, reward, done)
             observation, reward, done, info = env.step(action)
+            totalReward += reward
             if done:
-                print("Episode finished after {} timesteps".format(t + 1))
+                print("Episode finished after {} timesteps with total reward:{}".format(t + 1, totalReward))
                 break
     env.close()
     env.venv.close()
