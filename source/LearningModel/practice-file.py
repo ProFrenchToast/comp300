@@ -1,8 +1,6 @@
 import tensorflow as tf
 import numpy as np
 
-import time
-
 import gym
 import torch
 
@@ -94,7 +92,6 @@ def load_basePPO_and_Display():
     np.random.seed(seed)
     tf.set_random_seed(seed)
 
-    from baselines.common.vec_env.vec_normalize import VecNormalize
     from baselines.common.vec_env.vec_video_recorder import VecVideoRecorder
     model_path = "~/models/breakout-reward-RL2/breakout_50M_ppo2"
     env_id = 'BreakoutNoFrameskip-v4'
@@ -111,7 +108,7 @@ def load_basePPO_and_Display():
 
     env = VecFrameStack(env, 4)
 
-    from AgentClasses import PPO2Agent as realAgent
+    from LearningModel.AgentClasses import PPO2Agent as realAgent
     agent = realAgent(env, env_type, True)
     agent.load(model_path)
 

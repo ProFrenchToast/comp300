@@ -1,6 +1,6 @@
 from baselines.common.vec_env import VecFrameStack
 
-from AgentClasses import *
+from LearningModel.AgentClasses import *
 from baselines.common.cmd_util import make_vec_env
 from statistics import stdev
 
