@@ -9,7 +9,7 @@ class VecVideoRecorder(VecEnvWrapper):
     Wrap VecEnv to record rendered image as mp4 video.
     """
 
-    def __init__(self, venv, directory, record_video_trigger, video_length=200):
+    def __init__(self, venv, directory, record_video_trigger, video_length=200, savefile=""):
         """
         # Arguments
             venv: VecEnv to wrap
@@ -26,8 +26,11 @@ class VecVideoRecorder(VecEnvWrapper):
         self.video_recorder = None
 
         self.directory = os.path.abspath(directory)
-        if not os.path.exists(self.directory): os.mkdir(self.directory)
-
+        if savefile == "":
+            self.savefile = ""
+            if not os.path.exists(self.directory): os.mkdir(self.directory)
+        else:
+            self.savefile = savefile
         self.file_prefix = "vecenv"
         self.file_infix = '{}'.format(os.getpid())
         self.step_id = 0
@@ -46,12 +49,16 @@ class VecVideoRecorder(VecEnvWrapper):
     def start_video_recorder(self):
         self.close_video_recorder()
 
-        base_path = os.path.join(self.directory, '{}.video.{}.video{:06}'.format(self.file_prefix, self.file_infix, self.step_id))
+        if self.savefile == "":
+            base_path = os.path.join(self.directory, '{}.video.{}.video{:06}'.format(self.file_prefix, self.file_infix, self.step_id))
+        else:
+            base_path = os.path.abspath(self.savefile)
+
         self.video_recorder = video_recorder.VideoRecorder(
-                env=self.venv,
-                base_path=base_path,
-                metadata={'step_id': self.step_id}
-                )
+            env=self.venv,
+            base_path=base_path,
+            metadata={'step_id': self.step_id}
+        )
 
         self.video_recorder.capture_frame()
         self.recorded_frames = 1

@@ -1,7 +1,10 @@
 from tkinter import *
 from tkinter import filedialog
-from App.Utils import getAvailableEnvs
+from App.Utils import getAvailableEnvs, makeDemoFromAgent
 from os import path
+import subprocess
+
+import tensorflow as tf
 
 """This is the gui for creating demonstrations and demonstrators for the learning"""
 class CreateDemosGUI:
@@ -96,7 +99,54 @@ class CreateDemosGUI:
             valid = False
             print("Error log directory is invalid")
 
+        if self.env_variable.get() == '':
+            valid = False
+            print("Please select the environment you want to generate demos for")
 
+        self.run(self.env_variable.get(), steps, numDemos, self.saveDir_variable, self.logDir_variable)
+
+    def run(self, envName, stepsPerDemo, numDemos, saveDir, logDir):
+        algorithm = "ppo2"
+        splitname = envName.split("-")
+        fullEnvName = splitname[0] + "NoFrameskip-" + splitname[1]
+        stepSize = stepsPerDemo
+
+        # first generate the initial step
+        if logDir != "":
+            p = subprocess.Popen(
+                "python -m baselines.run --alg={} --env={} --num_timesteps={} --save_path={}/{} --log_path={}/{}"
+                .format(algorithm, fullEnvName, stepSize, saveDir, stepSize, logDir, stepSize), shell=True)
+            p.wait()
+        else:
+            p = subprocess.Popen(
+                "python -m baselines.run --alg={} --env={} --num_timesteps={} --save_path={}/{}"
+                    .format(algorithm, fullEnvName, stepSize, saveDir, stepSize), shell=True)
+            p.wait()
+
+        lastTrained = stepSize
+        #with tf.Graph().as_default():
+        agent = makeDemoFromAgent(saveDir + "/" + str(lastTrained), fullEnvName)
+
+        for checkpoint in range(1, numDemos):
+            nextTrained = lastTrained + stepSize
+            if logDir != "":
+                p = subprocess.Popen(
+                    "python -m baselines.run --alg={} --env={} --num_timesteps={} --save_path={}/{} --load_path={}/{} --log_path={}/{}"
+                    .format(algorithm, fullEnvName, stepSize, saveDir, nextTrained, saveDir, lastTrained, logDir, nextTrained),
+                    shell=True)
+                p.wait()
+            else:
+                p = subprocess.Popen(
+                    "python -m baselines.run --alg={} --env={} --num_timesteps={} --save_path={}/{} --load_path={}/{}"
+                    .format(algorithm, fullEnvName, stepSize, saveDir, nextTrained, saveDir, lastTrained),
+                    shell=True)
+                p.wait()
+
+            print("trained checkpoint {} to {}".format(lastTrained, nextTrained))
+            #with tf.Graph().as_default():
+            makeDemoFromAgent(saveDir+"/"+str(nextTrained), fullEnvName, agent=agent)
+            lastTrained = nextTrained
+        print("finished training")
 
 
 if __name__ == '__main__':

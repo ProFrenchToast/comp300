@@ -2,6 +2,8 @@ from tkinter import *
 from tkinter import filedialog
 from App.Utils import *
 import PIL.Image, PIL.ImageTk
+from os import path
+import re
 
 """This is the gui to set up the parameters for the reward learning """
 class SetupRewardLearning:
@@ -23,7 +25,7 @@ class SetupRewardLearning:
         self.env_variable = StringVar(self.parameter_frame)
         self.env_variable.set('')
         # not sure if this is needed: self.env_variable.trace()
-        self.env_options = {'Pong', 'Breakout', 'some other shit'}
+        self.env_options = getAvailableEnvs()
 
         self.env_menu = OptionMenu(self.parameter_frame, self.env_variable, *self.env_options)
         self.env_menu.grid(row=0, column=1)
@@ -80,14 +82,14 @@ class SetupRewardLearning:
         #Now set up the demo frame
         #set up the demos label
         self.demo_label = Label(self.demo_frame, text="Demonstrations selected:")
-        self.demo_label.grid(row=0, columnspan=2)
+        self.demo_label.pack(fill=BOTH, expand=True)
 
         #set up the frame to hold the demos and play buttons
         self.list_frame =ScrollableFrame(self.demo_frame)
-        self.list_frame.grid(row=1, columnspan=2)
+        self.list_frame.pack(fill=BOTH, expand=True)
 
         #setup the list box to order the demos
-        self.demos = ["demo1","demo2", "demo3", "demo4"]
+        self.demos = []
         self.demo_variable = Variable(master=self.list_frame.scrollable_frame, value=self.demos)
 
         self.demo_listBox = DragDropListbox(self.list_frame.scrollable_frame, listvariable=self.demo_variable)
@@ -99,19 +101,28 @@ class SetupRewardLearning:
 
         #now fill the frame with buttons
         self.playButton_array = []
-        for i in range(len(self.demos)):
-            self.playButton_array.append(Button(self.playButton_Frame, text="Play"))
-            self.playButton_array[i].pack(anchor="n")
+        self.makeButtons()
 
         #finally add the buttons for adding demos and clearing the demos
         self.addDemo_button = Button(self.demo_frame, text="Add demonstration", command=self.addDemo)
-        self.addDemo_button.grid(row=2, column=0)
+        self.addDemo_button.pack()
 
         self.clear_button = Button(self.demo_frame, text="Clear demonstrations", command=self.clearDemos)
-        self.clear_button.grid(row=2, column=1)
+        self.clear_button.pack()
+
+    def makeButtons(self):
+        #first remove any existing buttons
+        for i in reversed(range(len(self.playButton_array))):
+            self.playButton_array[i].pack_forget()
+            del self.playButton_array[i]
+
+        #then make a button for each demo
+        for i in range(len(self.demo_variable.get())):
+            self.playButton_array.append(Button(self.playButton_Frame, text="Play", command=self.demos[i].play))
+            self.playButton_array[i].pack(anchor="n")
 
     def setSaveDir(self):
-        self.saveDir_variable = filedialog.askdirectory(initialdir="~/", title="select folder to save demos")
+        self.saveDir_variable = filedialog.asksaveasfile(initialdir="~/", title="Where to save learned reward")
         self.saveDirDisplay_label.config(text="Save Dir: {}".format(self.saveDir_variable))
 
     def tryStart(self):
@@ -122,6 +133,22 @@ class SetupRewardLearning:
 
     def addDemo(self):
         print("Adding a new demo")
+        newDemoPath = filedialog.askopenfilename(initialdir="~/", title="Select the demo to open",
+                                                 filetypes=(("mp4 video files","*.mp4"),
+                                                            ("raw observation files","*.obs"),
+                                                            ("all files","*.*")))
+
+        #first check file exisits and ends in .mp4 or .obs
+        if not path.exists(newDemoPath):
+            print("Error that file does not exist")
+            return
+        else:
+            newDemo = DemoObsAndVideo(newDemoPath)
+            self.demos.append(newDemo)
+            self.demo_variable.set(self.demos)
+            self.makeButtons()
+
+
 
     def clearDemos(self):
         print("clearing all the demos selected")
@@ -186,7 +213,7 @@ class ActiveRewardLearning:
     def __del__(self):
         self.video1.__del__()
         self.video2.__del__()
-        self.master.destory()
+        self.master.destroy()
 
 
 if __name__ == '__main__':
