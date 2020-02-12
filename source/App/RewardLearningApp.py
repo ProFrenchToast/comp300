@@ -1,9 +1,11 @@
 from tkinter import *
+import tkinter.scrolledtext as ScrolledText
 from tkinter import filedialog
 from App.Utils import *
 import PIL.Image, PIL.ImageTk
 from os import path
 import re
+import threading
 
 """This is the gui to set up the parameters for the reward learning """
 class SetupRewardLearning:
@@ -92,7 +94,7 @@ class SetupRewardLearning:
         self.demos = []
         self.demo_variable = Variable(master=self.list_frame.scrollable_frame, value=self.demos)
 
-        self.demo_listBox = DragDropListbox(self.list_frame.scrollable_frame, listvariable=self.demo_variable)
+        self.demo_listBox = DragDropListbox(self.list_frame.scrollable_frame, parent=self, listvariable=self.demo_variable)
         self.demo_listBox.pack(side=LEFT, fill=BOTH, expand=1)
 
         #set up the frame to list all of the buttons
@@ -116,19 +118,76 @@ class SetupRewardLearning:
             self.playButton_array[i].pack_forget()
             del self.playButton_array[i]
 
+        listOfDemos = self.demo_variable.get()
+        demosStr = []
+        for demo in self.demos:
+            demosStr.append(str(demo))
         #then make a button for each demo
-        for i in range(len(self.demo_variable.get())):
-            self.playButton_array.append(Button(self.playButton_Frame, text="Play", command=self.demos[i].play))
+        for i in range(len(self.demos)):
+            filename = listOfDemos[i]
+            indexInDemos = demosStr.index(filename)
+            self.playButton_array.append(Button(self.playButton_Frame, text="Play",
+                                                command=self.demos[indexInDemos].play))
             self.playButton_array[i].pack(anchor="n")
 
+
     def setSaveDir(self):
-        self.saveDir_variable = filedialog.asksaveasfile(initialdir="~/", title="Where to save learned reward")
+        self.saveDir_variable = filedialog.asksaveasfilename(initialdir="~/", title="Where to save learned reward",
+                                                             initialfile="learnedReward")
         self.saveDirDisplay_label.config(text="Save Dir: {}".format(self.saveDir_variable))
 
     def tryStart(self):
-        print("trying to start training")
+        valid = True
+
+        epochStr = self.epoch_input.get()
+        min_snippetStr = self.minSnipp_input.get()
+        max_snippetStr = self.maxSnipp_input.get()
+        training_sizeStr = self.noSnipp_input.get()
+
+        try:
+            epochs = int(epochStr)
+            min_snippet = int(min_snippetStr)
+            max_snippet = int(max_snippetStr)
+            training_size = int(training_sizeStr)
+
+            if min_snippet > max_snippet:
+                valid = False
+                print("Error the minimum snippet size needs to be smaller or equal to the maximum  snippet size")
+        except ValueError:
+            print("Error the values need to be integers")
+            valid = False
+
+        if self.saveDir_variable == "":
+            valid = False
+            print("Error need to select the save directory")
+
+        if len(self.demos) < 2:
+            valid = False
+            print("Error needs at least 2 demos to perform learning")
+        else:
+            #create the ordered demos
+            orderedDemos = []
+            listOfDemos = self.demo_variable.get()
+            demosStr = []
+            for demo in self.demos:
+                demosStr.append(str(demo))
+
+            for filename in listOfDemos:
+                indexInDemos = demosStr.index(filename)
+                obs = self.demos[indexInDemos]
+                orderedDemos.append(obs)
+
+        if valid:
+            print("trying to start training")
+            #self.start_button.config(state=DISABLED)
+            #now make a new window
+            self.activeWindow = tkinter.Toplevel(self.master)
+            ActiveRewardLearning(self.activeWindow, orderedDemos, epochs, min_snippet, max_snippet,
+                                 training_size, self.saveDir_variable)
 
     def emptyAndClose(self):
+        for demo in self.demos:
+            del demo
         self.master.destroy()
 
     def addDemo(self):
@@ -148,15 +207,33 @@ class SetupRewardLearning:
             self.demo_variable.set(self.demos)
             self.makeButtons()
 
-
-
     def clearDemos(self):
-        print("clearing all the demos selected")
+        print("clearing all demos")
+        for demo in self.demos:
+            del demo
+
+        self.demos = []
+        self.demo_variable.set(self.demos)
+        self.makeButtons()
+
+
+
 
 class ActiveRewardLearning:
-    def __init__(self, master):
+    def __init__(self, master, demos, trainingEpochs, min_snippet_size, max_snippet_size, no_snippets, save_dir):
         self.master = master
         master.title("Learning from demonstrations")
+
+        self.demos = []
+        for demo in demos:
+            self.demos.append(demo.obs[:, 0, :, :])
+        self.demo_ranking = list(range(len(self.demos)))
+        self.demo_ranking.reverse()
+        self.training_epochs = trainingEpochs
+        self.min_snippet_size = min_snippet_size
+        self.max_snippet_size = max_snippet_size
+        self.no_snippets = no_snippets
+        self.save_dir = save_dir
 
         #set up the frame that will hold the video feeds of the training snippets
         self.video_frame = Frame(master)
@@ -172,13 +249,22 @@ class ActiveRewardLearning:
         self.video2 = MyVideoCapture("/home/patrick/PycharmProjects/comp300/source/videos/Agent50MTrain2.mp4")
 
         #now add the output box
-        self.output_frame = ScrollableFrame(self.master)
+        self.output_frame = Frame(self.master)
         self.output_frame.pack()
 
-        self.output_variable = StringVar(self.output_frame.scrollable_frame, value="some interesting output about how "
+        self.output_variable = StringVar(self.output_frame, value="some interesting output about how "
                                                                                    "the training is going.")
-        self.output_message = Message(self.output_frame.scrollable_frame, textvariable=self.output_variable)
-        self.output_message.pack()
+        self.output_box = ScrolledText.ScrolledText(self.output_frame, state='disabled', font='TkFixedFont')
+        self.output_box.pack()
+
+        text_handler = TextHandler(self.output_box)
+        # Logging configuration
+        logging.basicConfig(level=logging.INFO,
+                            format='%(asctime)s - %(levelname)s - %(message)s')
+
+        # Add the handler to logger
+        logger = logging.getLogger()
+        logger.addHandler(text_handler)
 
         #finally add the cancel and finish buttons
         self.button_frame = Frame(self.master)
@@ -187,11 +273,25 @@ class ActiveRewardLearning:
         self.cancel_button = Button(self.button_frame, text="Cancel", command=self.__del__)
         self.cancel_button.pack(side=LEFT)
 
-        self.finish_button = Button(self.button_frame, text="Finish", state=DISABLED)
+        self.finish_button = Button(self.button_frame, text="Finish", state=DISABLED, command=master.destroy)
         self.finish_button.pack(side=RIGHT)
 
+        #make the demos and rankings into numpy arrays
+        self.demos = np.array(self.demos)
+        self.demo_ranking = np.array(self.demo_ranking)
+        #create the labels and snippets
+        self.training_trajectories, self.training_labels = create_training_labels(self.demos, self.demo_ranking,
+                                                                                  0, self.no_snippets,
+                                                                                  self.min_snippet_size,
+                                                                                  self.max_snippet_size)
+        #start training on a seperate thread
+        self.training_thread = threading.Thread(target=train_network, args=(self.training_trajectories, self.training_labels,
+                                                                self.training_epochs, self.save_dir, self))
+        self.training_thread.start()
+        #train_network(self.training_trajectories, self.training_labels, self.training_epochs, self.save_dir, self)
+
         # add the update method to the main window loop
-        self.delay = 15
+        self.delay = 34
         self.update()
 
     def update(self):
@@ -201,6 +301,9 @@ class ActiveRewardLearning:
         if ret:
             self.photo1 = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))
             self.video_canvas1.create_image(0, 0, image=self.photo1, anchor=tkinter.NW)
+        else:
+            self.video_canvas1.delete("all")
+            #self.video1.reset()
 
         #now update the second video
         ret, frame = self.video2.get_frame()
@@ -208,6 +311,13 @@ class ActiveRewardLearning:
         if ret:
             self.photo2 = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))
             self.video_canvas2.create_image(0, 0, image=self.photo2, anchor=tkinter.NW)
+        else:
+            self.video_canvas2.delete("all")
+            #self.video2.reset()
+
+        if not self.training_thread.isAlive():
+            self.finish_button.config(state=ACTIVE)
+
         self.master.after(self.delay, self.update)
 
     def __del__(self):
@@ -221,6 +331,6 @@ if __name__ == '__main__':
     Gui = SetupRewardLearning(rootWindow)
     rootWindow.mainloop()
 
-    secondRoot = Tk()
-    Gui = ActiveRewardLearning(secondRoot)
-    secondRoot.mainloop()
+    #secondRoot = Tk()
+    #Gui = ActiveRewardLearning(secondRoot)
+    #secondRoot.mainloop()

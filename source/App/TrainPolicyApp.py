@@ -1,7 +1,12 @@
+import threading
+from os import path
 from tkinter import *
 from App.Utils import *
 import PIL.Image, PIL.ImageTk
 from tkinter import filedialog
+import tkinter.scrolledtext as ScrolledText
+from baselines import run
+from time import strftime, gmtime
 
 class SetupTrainPolicy:
     def __init__(self, master):
@@ -15,7 +20,7 @@ class SetupTrainPolicy:
         self.env_variable = StringVar(master)
         self.env_variable.set('')
         # not sure if this is needed: self.env_variable.trace()
-        self.env_options = {'Pong', 'Breakout', 'some other shit'}
+        self.env_options = getAvailableEnvs()
 
         self.env_menu = OptionMenu(master, self.env_variable, *self.env_options)
         self.env_menu.grid(row=0, column=1)
@@ -32,10 +37,10 @@ class SetupTrainPolicy:
         self.rewardDisplay_label.grid(row=2, column=0, columnspan=2)
 
         # set up the steps the policy should be trained for
-        self.steps_label = Label(master, text="Training steps between demos: ")
+        self.steps_label = Label(master, text="Training steps: ")
         self.steps_label.grid(row=3, column=0)
 
-        self.steps_input = Spinbox(master, from_=1, to=1000000)
+        self.steps_input = Spinbox(master, from_=1, to=100000000)
         self.steps_input.grid(row=3, column=1)
 
         # setup the save directory
@@ -72,7 +77,8 @@ class SetupTrainPolicy:
         self.rewardDisplay_label.config(text="Selected reward: {}".format(self.reward_variable))
 
     def setSaveDir(self):
-        self.saveDir_variable = filedialog.askdirectory(initialdir="~/", title="select folder to save demos")
+        self.saveDir_variable = filedialog.asksaveasfilename(initialdir="~/", title="Where to save learned reward",
+                                                             initialfile="TrainedAgent")
         self.saveDirDisplay_label.config(text="Save Dir: {}".format(self.saveDir_variable))
 
     def setLogDir(self):
@@ -83,12 +89,50 @@ class SetupTrainPolicy:
         self.master.destroy()
 
     def tryRun(self):
-        print("test that variables are consistent and then run")
+        valid = True
+
+        stepsStr = self.steps_input.get()
+        try:
+            steps = int(stepsStr)
+        except ValueError:
+            print("Error the number of steps needs to be an integer")
+            valid = False
+
+        if not path.exists(self.reward_variable):
+            valid = False
+            print("Error need to provide a reward network")
+
+        if self.saveDir_variable == "":
+            valid = False
+            print("Error need to select where to save the agent")
+
+        if self.logDir_variable != "" and not path.exists(self.logDir_variable):
+            valid = False
+            print("Error log directory is invalid")
+
+        if self.env_variable.get() == '':
+            valid = False
+            print("Please select the environment you want to train the agent in")
+
+        if valid:
+            # now make a new window
+            self.activeWindow = tkinter.Toplevel(self.master)
+            ActiveTrainPolicy(self.activeWindow, self.env_variable.get(), steps, self.reward_variable,
+                              self.saveDir_variable, self.logDir_variable)
+
 
 class ActiveTrainPolicy:
-    def __init__(self, master):
+    def __init__(self, master, env_name, training_steps, reward_network, save_dir, log_dir):
         self.master =  master
         master.title("Learning to complete task")
+
+        algorithm = "ppo2"
+        splitname = env_name.split("-")
+        fullEnvName = splitname[0] + "NoFrameskip-" + splitname[1]
+        self.log_dir = log_dir
+        if log_dir == "":
+            timestamp = strftime("%Y-%m-%d-%H:%M:%S", gmtime())
+            self.log_dir = "/tmp/InverseRL-{}".format(timestamp)
 
         #set up the canvas for the video
         self.video_canvas = Canvas(master)
@@ -104,8 +148,17 @@ class ActiveTrainPolicy:
 
         self.output_variable = StringVar(self.output_frame.scrollable_frame, value="some interesting output about how "
                                                                                    "the training is going.")
-        self.output_message = Message(self.output_frame.scrollable_frame, textvariable=self.output_variable)
-        self.output_message.pack()
+        self.output_box = ScrolledText.ScrolledText(self.output_frame, state='disabled', font='TkFixedFont')
+        self.output_box.pack()
+
+        text_handler = TextHandler(self.output_box)
+
+        # Add the handler to logger
+        logging.basicConfig(level=logging.INFO,
+                            format='%(asctime)s - %(levelname)s - %(message)s')
+        logger = logging.getLogger()
+        logger.addHandler(text_handler)
+        sys.stdout.write = logger.info
 
         # finally add the cancel and finish buttons
         self.button_frame = Frame(self.master)
@@ -118,8 +171,21 @@ class ActiveTrainPolicy:
         self.finish_button.pack(side=RIGHT)
 
         # add the update method to the main window loop
-        self.delay = 15
+        self.delay = 33
         self.update()
+
+        #create a new thread to do the rl on
+        args = sys.argv
+        args.append("--alg={}".format(algorithm))
+        args.append("--env={}".format(fullEnvName))
+        args.append("--Custom_reward pytorch")
+        args.append("--custom_reward_path {}".format(reward_network))
+        args.append("--num_timesteps={}".format(training_steps))
+        args.append("--save_interval=1000")
+        args.append("--save_path={}".format(save_dir))
+        args.append("--log_path={}".format(self.log_dir))
+        self.trainingThread = threading.Thread(target=run.main, args=[args])
+        self.trainingThread.start()
 
     def update(self):
         ret, frame = self.video_stream.get_frame()
@@ -137,7 +203,3 @@ if __name__ == '__main__':
     root = Tk()
     gui = SetupTrainPolicy(root)
     root.mainloop()
-
-    root2 = Tk()
-    gui2 = ActiveTrainPolicy(root2)
-    root2.mainloop()
