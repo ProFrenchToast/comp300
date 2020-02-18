@@ -1,4 +1,8 @@
+import tkinter
 from tkinter import Tk, Label, Button
+from App.CreateDemosApp import CreateDemosGUI
+from App.RewardLearningApp import SetupRewardLearning
+from App.TrainPolicyApp import SetupTrainPolicy
 
 
 """ This is the top level gui class that will be used to open the other three steps"""
@@ -24,13 +28,16 @@ class MainGUI:
         self.evaluation_button = Button(master, text="Evaluate a trained model", command=self.create_Evaluation)
 
     def create_demonstration(self):
-        print("creating demonstraions")
+        newWindow = tkinter.Toplevel(self.master)
+        CreateDemosGUI(newWindow)
 
     def create_LearnReward(self):
-        print("creating reward learning")
+        newWindow= tkinter.Toplevel(self.master)
+        SetupRewardLearning(newWindow)
 
     def create_ReinforcementLearning(self):
-        print("creating reinforcement learning on reward function")
+        newWindow = tkinter.Toplevel(self.master)
+        SetupTrainPolicy(newWindow)
 
     def create_Evaluation(self):
         print("creating evaluation of existing model")

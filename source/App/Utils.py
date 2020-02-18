@@ -93,26 +93,30 @@ class LoggerWriter:
 
 #this code was made by Jose Salvatierra from https://blog.tecladocode.com/tkinter-scrollable-frames/ as part of a tutorial
 #on tkinter
-class ScrollableFrame(ttk.Frame):
+class ScrollableFrame(tkinter.Frame):
     def __init__(self, container, *args, **kwargs):
         super().__init__(container, *args, **kwargs)
-        canvas = tkinter.Canvas(self)
-        scrollbar = ttk.Scrollbar(self, orient="vertical", command=canvas.yview)
-        self.scrollable_frame = ttk.Frame(canvas)
+        self.canvas = tkinter.Canvas(self)
+        scrollbar = tkinter.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = tkinter.Frame(self.canvas)
 
         self.scrollable_frame.bind(
             "<Configure>",
-            lambda e: canvas.configure(
-                scrollregion=canvas.bbox("all")
+            lambda e: self.canvas.configure(
+                scrollregion=self.canvas.bbox("all")
             )
         )
 
-        canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.window = self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
 
-        canvas.configure(yscrollcommand=scrollbar.set)
+        self.canvas.configure(yscrollcommand=scrollbar.set)
 
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        self.canvas.pack(side="left", fill=tkinter.BOTH, expand=True)
+        self.canvas.bind("<Configure>", self.onCanvasConfigure)
+        scrollbar.pack(side="right", fill="y", expand=True)
+
+    def onCanvasConfigure(self, event):
+        self.canvas.itemconfig(self.window, height=self.canvas.winfo_height(), width=self.canvas.winfo_width())
 
 #code code was developed by paul from https://solarianprogrammer.com/2018/04/21/python-opencv-show-video-tkinter-window/
 #as part of a tutorial on how to display videos from opencv in a tkinter window
@@ -133,7 +137,7 @@ class MyVideoCapture:
              ret, frame = self.vid.read()
              if ret:
                  # Return a boolean success flag and the current frame converted to BGR
-                 return (ret, cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+                 return (ret, frame)#cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
              else:
                  return (ret, None)
          else:
@@ -235,8 +239,8 @@ class DemoObsAndVideo:
     def __str__(self):
         return self.fileName
 
-    #def __del__(self):
-     #   del self.video
+    def __del__(self):
+        del self.video
 
 class Array2Video:
     def __init__(self, obs):
@@ -265,6 +269,9 @@ class Array2Video:
     def reset(self):
         self.currentIndex = 0
         self.ret = True
+
+    def __del__(self):
+        pass
 
 
 def getAvailableEnvs():

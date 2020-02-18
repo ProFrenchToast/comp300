@@ -140,14 +140,13 @@ class ActiveTrainPolicy:
 
         #not sure how i will even do this because it doesnt produce .mp4 files. I guess probably capture the new window or
         #take the obs directly and create images.
-        self.video_stream = MyVideoCapture("/home/patrick/PycharmProjects/comp300/source/videos/Agent50MTrain.mp4")
+        self.video_stream = []
+        self.set_new_video(np.zeros((1, 84, 84, 4), dtype=np.uint8))
 
         # now add the output box
-        self.output_frame = ScrollableFrame(self.master)
+        self.output_frame = Frame(self.master)
         self.output_frame.pack()
 
-        self.output_variable = StringVar(self.output_frame.scrollable_frame, value="some interesting output about how "
-                                                                                   "the training is going.")
         self.output_box = ScrolledText.ScrolledText(self.output_frame, state='disabled', font='TkFixedFont')
         self.output_box.pack()
 
@@ -184,16 +183,25 @@ class ActiveTrainPolicy:
         args.append("--save_interval=1000")
         args.append("--save_path={}".format(save_dir))
         args.append("--log_path={}".format(self.log_dir))
-        self.trainingThread = threading.Thread(target=run.main, args=[args])
+        self.trainingThread = threading.Thread(target=run.main, args=[args, self])
         self.trainingThread.start()
 
     def update(self):
         ret, frame = self.video_stream.get_frame()
         if ret:
             self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))
-            self.video_canvas.create_image(0,0, image=self.photo, anchor="nw")
+            height = self.video_canvas.winfo_height()
+            width = self.video_canvas.winfo_width()
+            self.video_canvas.create_image(width/2,height/2, image=self.photo)
+        else:
+            self.video_canvas.delete("all")
 
         self.master.after(self.delay, self.update)
+
+    def set_new_video(self, obs):
+        oldStream = self.video_stream
+        self.video_stream = DemoObsAndVideo(obs=obs)
+        del oldStream
 
     def __del__(self):
         self.video_stream.__del__()

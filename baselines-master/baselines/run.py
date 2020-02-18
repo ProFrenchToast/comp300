@@ -50,7 +50,7 @@ _game_envs['retro'] = {
 }
 
 
-def train(args, extra_args):
+def train(args, extra_args, gui=None):
     env_type, env_id = get_env_type(args)
     print('env_type: {}'.format(env_type))
 
@@ -73,12 +73,21 @@ def train(args, extra_args):
 
     print('Training {} on {}:{} with arguments \n{}'.format(args.alg, env_type, env_id, alg_kwargs))
 
-    model = learn(
-        env=env,
-        seed=seed,
-        total_timesteps=total_timesteps,
-        **alg_kwargs
-    )
+    if gui == None:
+        model = learn(
+            env=env,
+            seed=seed,
+            total_timesteps=total_timesteps,
+            **alg_kwargs
+        )
+    else:
+        model = learn(
+            env=env,
+            seed=seed,
+            total_timesteps=total_timesteps,
+            **alg_kwargs,
+            gui=gui
+        )
 
     return model, env
 
@@ -214,7 +223,7 @@ def configure_logger(log_path, **kwargs):
         logger.configure(**kwargs)
 
 
-def main(args):
+def main(args, Gui_parent = None):
     # configure logger, disable logging in child MPI processes (with rank > 0)
 
     arg_parser = common_arg_parser()
@@ -228,7 +237,10 @@ def main(args):
         rank = MPI.COMM_WORLD.Get_rank()
         configure_logger(args.log_path, format_strs=[])
 
-    model, env = train(args, extra_args)
+    if Gui_parent == None:
+        model, env = train(args, extra_args)
+    else:
+        model, env = train(args, extra_args, gui=Gui_parent)
 
     if args.save_path is not None and rank == 0:
         save_path = osp.expanduser(args.save_path)

@@ -17,20 +17,9 @@ class SetupRewardLearning:
         self.parameter_frame.pack(side=LEFT)
 
         self.demo_frame = Frame(master)
-        self.demo_frame.pack(side=RIGHT)
+        self.demo_frame.pack(side=RIGHT, fill=BOTH, expand=True)
 
         #first make the parameter frame becuase it is the simplest
-        # set up the environment choice
-        self.env_label = Label(self.parameter_frame, text="Environment: ")
-        self.env_label.grid(row=0, column=0)
-
-        self.env_variable = StringVar(self.parameter_frame)
-        self.env_variable.set('')
-        # not sure if this is needed: self.env_variable.trace()
-        self.env_options = getAvailableEnvs()
-
-        self.env_menu = OptionMenu(self.parameter_frame, self.env_variable, *self.env_options)
-        self.env_menu.grid(row=0, column=1)
 
         #todo: add the option of different network sizes
 
@@ -84,7 +73,7 @@ class SetupRewardLearning:
         #Now set up the demo frame
         #set up the demos label
         self.demo_label = Label(self.demo_frame, text="Demonstrations selected:")
-        self.demo_label.pack(fill=BOTH, expand=True)
+        self.demo_label.pack()
 
         #set up the frame to hold the demos and play buttons
         self.list_frame =ScrollableFrame(self.demo_frame)
@@ -94,8 +83,8 @@ class SetupRewardLearning:
         self.demos = []
         self.demo_variable = Variable(master=self.list_frame.scrollable_frame, value=self.demos)
 
-        self.demo_listBox = DragDropListbox(self.list_frame.scrollable_frame, parent=self, listvariable=self.demo_variable)
-        self.demo_listBox.pack(side=LEFT, fill=BOTH, expand=1)
+        self.demo_listBox = DragDropListbox(self.list_frame.scrollable_frame, listvariable=self.demo_variable)
+        self.demo_listBox.pack(side=LEFT, fill=BOTH, expand=True)
 
         #set up the frame to list all of the buttons
         self.playButton_Frame = Frame(self.list_frame.scrollable_frame)
