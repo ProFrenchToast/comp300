@@ -120,9 +120,26 @@ class SetupTrainPolicy:
             ActiveTrainPolicy(self.activeWindow, self.env_variable.get(), steps, self.reward_variable,
                               self.saveDir_variable, self.logDir_variable)
 
+    def loadConfig(self, filename):
+        try:
+            config = pickle.load(open('/home/patrick/models/fullGuiTest/trainPolicy.config', "rb"))
+
+            self.env_variable.set(config.get('env'))
+
+            self.reward_variable = config.get('learned_reward')
+            self.rewardDisplay_label.config(text="Selected reward: {}".format(self.reward_variable))
+
+            self.steps_input.delete(0, "end")
+            self.steps_input.insert(0, config.get('training_steps'))
+
+            self.saveDir_variable = config.get('save_dir')
+            self.saveDirDisplay_label.config(text="Save Dir: {}".format(self.saveDir_variable))
+        except:
+            return
+
 
 class ActiveTrainPolicy:
-    def __init__(self, master, env_name, training_steps, reward_network, save_dir, log_dir):
+    def __init__(self, master, env_name, training_steps, reward_network, save_dir, log_dir, config=None):
         self.master =  master
         master.title("Learning to complete task")
 
@@ -173,16 +190,26 @@ class ActiveTrainPolicy:
         self.delay = 33
         self.update()
 
-        #create a new thread to do the rl on
+        # create a new thread to do the rl on
         args = sys.argv
-        args.append("--alg={}".format(algorithm))
-        args.append("--env={}".format(fullEnvName))
-        args.append("--Custom_reward pytorch")
-        args.append("--custom_reward_path {}".format(reward_network))
-        args.append("--num_timesteps={}".format(training_steps))
-        args.append("--save_interval=1000")
-        args.append("--save_path={}".format(save_dir))
-        args.append("--log_path={}".format(self.log_dir))
+        if config ==None:
+            args.append("--alg={}".format(algorithm))
+            args.append("--env={}".format(fullEnvName))
+            args.append("--Custom_reward pytorch")
+            args.append("--custom_reward_path {}".format(reward_network))
+            args.append("--num_timesteps={}".format(training_steps))
+            args.append("--save_interval=1000")
+            args.append("--save_path={}".format(save_dir))
+            args.append("--log_path={}".format(self.log_dir))
+        else:
+            args.append("--alg={}".format(config.get('alg')))
+            args.append("--env={}".format(config.get('env')))
+            args.append("--num_timesteps={}".format(config.get('num_timesteps')))
+            args.append("--Custom_reward pytorch")
+            args.append("--custom_reward_path={}".format(config.get('custom_reward_path')))
+            args.append("--save_path={}".format(config.get('save_path')))
+            args.append("--load_path={}".format(config.get('load_path')))
+
         self.trainingThread = threading.Thread(target=run.main, args=[args, self])
         self.trainingThread.start()
 
@@ -210,4 +237,5 @@ class ActiveTrainPolicy:
 if __name__ == '__main__':
     root = Tk()
     gui = SetupTrainPolicy(root)
+    gui.loadConfig('/home/patrick/models/fullGuiTest/trainPolicy.config')
     root.mainloop()

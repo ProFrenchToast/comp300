@@ -205,6 +205,37 @@ class SetupRewardLearning:
         self.demo_variable.set(self.demos)
         self.makeButtons()
 
+    def loadConfig(self, filename):
+        try:
+            config = pickle.load(open(filename, "rb"))
+
+            self.epoch_input.delete(0, "end")
+            self.epoch_input.insert(0, config.get('training_epochs'))
+
+            self.minSnipp_input.delete(0, "end")
+            self. minSnipp_input.insert(0, config.get('min_snippet'))
+
+            self.maxSnipp_input.delete(0, "end")
+            self.maxSnipp_input.insert(0, config.get('max_snippet'))
+
+            self.noSnipp_input.delete(0, "end")
+            self.noSnipp_input.insert(0, config.get('no_snippets'))
+
+            self.saveDir_variable = config.get('save_dir')
+            self.saveDirDisplay_label.config(text="Save Dir: {}".format(self.saveDir_variable))
+
+            self.clearDemos()
+            demoNames = config.get('demos')
+            for name in demoNames:
+                newDemo = DemoObsAndVideo(name)
+                self.demos.append(newDemo)
+
+            self.demo_variable.set(self.demos)
+            self.makeButtons()
+        except:
+            return
+
+
 
 
 
@@ -318,6 +349,7 @@ class ActiveRewardLearning:
 if __name__ == '__main__':
     rootWindow = Tk()
     Gui = SetupRewardLearning(rootWindow)
+    Gui.loadConfig('/home/patrick/models/fullGuiTest/learnReward.config')
     rootWindow.mainloop()
 
     #secondRoot = Tk()
