@@ -267,7 +267,7 @@ if __name__ == '__main__':
                            'episode_life': False,
                        })
     env = VecFrameStack(env, 4)
-    agent = PPO2Agent(env, 'atari', True)
+    agent = PPO2Agent(env, env_type, True)
     #agent.load("/home/patrick/Downloads/breakout_25/00001")
 
     trajectories, rewards = generate_demos_from_checkpoints(env, agent, model_path, 1)
@@ -282,7 +282,7 @@ if __name__ == '__main__':
     loss = nn.CrossEntropyLoss()
     learning_rate = 0.00005
     weight_decay = 0
-    network = RewardNetwork(loss)
+    network = RewardNetwork(loss, env=env)
     network.to(device)
     optimiser = optim.Adam(network.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
