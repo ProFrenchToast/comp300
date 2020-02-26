@@ -257,7 +257,7 @@ def calc_accuracy(reward_network, test_trajectories, testing_lables):
 
 
 if __name__ == '__main__':
-    model_path = "/home/patrick/models/BreakoutNoFrameskip-v4-groundTruth"
+    model_path = "/home/patrick/models/fullGuiTest"
     env_id = 'BreakoutNoFrameskip-v4'
     env_type = 'atari'
 
@@ -273,7 +273,7 @@ if __name__ == '__main__':
     trajectories, rewards = generate_demos_from_checkpoints(env, agent, model_path, 1)
     trajectories = np.array(trajectories)
     rewards = np.array(rewards)
-    training_obs, training_labels, test_obs, test_labels = create_training_test_labels(0.9, trajectories, rewards, 0, 6000, 50, 100)
+    training_obs, training_labels, test_obs, test_labels = create_training_test_labels(0.5, trajectories, rewards, 0, 12000, 50, 150)
     trajectories = 0
     rewards = 0
 
@@ -286,7 +286,7 @@ if __name__ == '__main__':
     network.to(device)
     optimiser = optim.Adam(network.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
-    train_reward_network(network, optimiser, training_obs, training_labels, 5, "/home/patrick/models/breakout-reward/checkpoint")
-    torch.save(network.state_dict(), "/home/patrick/models/breakout-reward/fullTest.params")
+    train_reward_network(network, optimiser, training_obs, training_labels, 5)
+    torch.save(network.state_dict(), "/home/patrick/models/fullGuiTest/fullTest.params")
     accuracy = calc_accuracy(network, test_obs, test_labels)
     print("accuracy of test network is {}%".format(accuracy))

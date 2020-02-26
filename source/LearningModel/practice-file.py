@@ -8,32 +8,7 @@ from baselines.common.policies import build_policy
 from baselines.ppo2.model import Model
 from baselines.common.cmd_util import make_vec_env
 from baselines.common.vec_env.vec_frame_stack import VecFrameStack
-##cloned
-class PPO2Agent(object):
-    def __init__(self, env, env_type, stochastic):
-        ob_space = env.observation_space
-        ac_space = env.action_space
-        self.stochastic = stochastic
-
-        if env_type == 'atari':
-            policy = build_policy(env,'cnn')
-        elif env_type == 'mujoco':
-            policy = build_policy(env,'mlp')
-
-        make_model = lambda : Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=1, nbatch_train=1,
-                        nsteps=1, ent_coef=0., vf_coef=0.,
-                        max_grad_norm=0.)
-        self.model = make_model()
-
-    def load(self, path):
-        self.model.load(path)
-
-    def act(self, observation, reward, done):
-        if self.stochastic:
-            a,v,state,neglogp = self.model.step(observation)
-        else:
-            a = self.model.act_model.act(observation)
-        return a
+from LearningModel.AgentClasses import *
 
 def train_on_mnist():
     import matplotlib.pyplot as plt
@@ -84,52 +59,3 @@ def displaygym():
     env.close()
 
 #* actually load a pretrained agent and then render 10 runs of the env
-def load_basePPO_and_Display():
-
-    seed = 0
-    # set seeds
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    tf.set_random_seed(seed)
-
-    from baselines.common.vec_env.vec_video_recorder import VecVideoRecorder
-    model_path = "~/models/breakout-reward-RL2/breakout_50M_ppo2"
-    env_id = 'BreakoutNoFrameskip-v4'
-    env_type = 'atari'
-    record = False
-
-    env = make_vec_env(env_id, env_type, 1, 0,
-                       wrapper_kwargs={
-                           'clip_rewards': False,
-                           'episode_life': False,
-                       })
-    if record:
-        env = VecVideoRecorder(env, './videos/', lambda steps: True, 2000000)
-
-    env = VecFrameStack(env, 4)
-
-    from LearningModel.AgentClasses import PPO2Agent as realAgent
-    agent = realAgent(env, env_type, True)
-    agent.load(model_path)
-
-    for i_episode in range(1):
-        observation = env.reset()
-        reward = 0
-        totalReward = 0
-        done = False
-        t = 0
-        while True:
-            t = t+1
-            env.render()
-            action = agent.act(observation, reward, done)
-            observation, reward, done, info = env.step(action)
-            totalReward += reward
-            if done:
-                print("Episode finished after {} timesteps with total reward:{}".format(t + 1, totalReward))
-                break
-    env.close()
-    env.venv.close()
-
-
-
-load_basePPO_and_Display()

@@ -12,6 +12,7 @@ def getReward(agent, env):
     done = False
 
     while True:
+        env.render()
         action = agent.act(obs, r, done)
         obs, r, done, info = env.step(action)
         totalReward += r
