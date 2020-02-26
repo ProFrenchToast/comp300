@@ -1,5 +1,5 @@
 from gym import Env, logger
-from gym.spaces import Discrete, Tuple, Box
+from gym.spaces import Discrete, Tuple, Box, Dict
 from gym.utils import colorize, seeding
 import numpy as np
 import chess
@@ -24,12 +24,14 @@ class ChessEnv(Env):
         if startingSide == "white":
             self.side = 1
         else:
-            self.side = -1
+            self.side = 2
 
         #set up the action and observation space also set up reward range
         #the observation space is just a grid with 8x8 squares of intergers. 0 = empty, n = white piece, -n = black piece
         #the observation space also needs an input for what side the agent is
-        self.observation_space = Tuple([Box(-np.inf, np.inf, shape=(8,8), dtype=np.int64), Box(-1, 1, shape=(), dtype=np.int64)])
+        self.observation_space = Dict(dict(
+            obs = Box(-np.inf, np.inf, shape=(8,8), dtype=np.int64),
+            side = Discrete(2)))
         #look at base board class for info on how to access board states
         self.done = False
         #the action space will consist of a single int that is the index of the possible legal moves
@@ -48,7 +50,7 @@ class ChessEnv(Env):
         self.done = False
         #also maybe set a new side??
 
-        return self.getObs(), 0, self.done, {}
+        return self.getObs()
 
     def step(self, action):
         #apply the action given to the game system but it needs to be converted to a string first
@@ -131,5 +133,32 @@ class ChessEnv(Env):
                         boardState[7-row][column] = -piece.piece_type
 
 
-        obs = (boardState, self.side)
+        obs = {
+            'obs':boardState.copy(),
+            'side':self.side,
+        }
         return obs
+
+if __name__ == '__main__':
+    from baselines import run
+    from gym import register
+    import sys
+
+    register(id='ChessSelf-v0',
+             entry_point='Chess.ChessWrapper:ChessEnv',
+             max_episode_steps=100000)
+
+    envobj = ChessEnv()
+    reset = envobj.reset()
+
+    env = 'ChessSelf-v0'
+    alg = 'ppo2'
+    steps = '20000000' #20m
+    save_path = "~/models/chessTest/chess20Mppo2"
+    args = sys.argv
+    args.append("--alg={}".format(alg))
+    args.append("--env={}".format(env))
+    args.append("--num_timesteps={}".format(steps))
+    args.append("--save_path={}".format(save_path))
+
+    run.main(args)
