@@ -349,7 +349,6 @@ class ActiveRewardLearning:
 if __name__ == '__main__':
     rootWindow = Tk()
     Gui = SetupRewardLearning(rootWindow)
-    Gui.loadConfig('/home/patrick/models/fullGuiTest/learnReward.config')
     rootWindow.mainloop()
 
     #secondRoot = Tk()

@@ -2,6 +2,18 @@ import tkinter as tk
 from App.Utils import ScrollableFrame, DemoObsAndVideo
 import pickle
 
+env = 'Breakout-v4'
+steps_per_demo = 25
+num_demos = 4
+save_dir = '/home/patrick/models/fullGuiTest'
+create_demos_config = {
+    'env':env,
+    'steps_per_demo':steps_per_demo,
+    'num_demos':num_demos,
+    'save_dir':save_dir
+}
+pickle.dump(create_demos_config, open('/home/patrick/models/fullGuiTest/createDemos.config', "wb"))
+
 root = tk.Tk()
 
 frame = ScrollableFrame(root)
@@ -12,11 +24,11 @@ for i in range(50):
 frame.pack(fill=tk.BOTH, expand=True)
 root.mainloop()
 
-training_epochs = 4
+training_epochs = 1
 min_snippet = 50
-max_snippet = 150
+max_snippet = 100
 no_snippets = 10
-save_dir = '/home/patrick/models/fullGuiTest/learnedReward.params'
+save_dir = '/home/patrick/models/fullGuiTest/learnedRewardDemo.params'
 demos = ['/home/patrick/models/fullGuiTest/25.mp4',
          '/home/patrick/models/fullGuiTest/50.mp4',
          '/home/patrick/models/fullGuiTest/75.obs',
@@ -36,7 +48,7 @@ pickle.dump(learn_reward_config, open('/home/patrick/models/fullGuiTest/learnRew
 env = 'Breakout-v4'
 learned_reward = '/home/patrick/models/breakout-reward/fullTest.params'
 training_steps = 50000000 #50M
-save_dir = '/home/patrick/models/fullGuiTest/agent50M'
+save_dir = '/home/patrick/models/fullGuiTest/agent50MDemo'
 train_policy_config = {
     'env':env,
     'learned_reward':learned_reward,
@@ -50,8 +62,8 @@ pickle.dump(train_policy_config, open('/home/patrick/models/fullGuiTest/trainPol
 alg = 'ppo2'
 env = 'BreakoutNoFrameskip-v4'
 num_timesteps = 50000000
-save_path = '/home/patrick/models/fullGuiTest/agent50M'
-load_path = '/home/patrick/logs/'
+save_path = '/home/patrick/models/fullGuiTest/agent50MDemo'
+load_path = '/home/patrick/logs/Agent/IRLTest/checkpoints/100000'
 custom_reward_path = '/home/patrick/models/fullGuiTest/fullTest.params'
 intermediate_policy_config = {
     'alg':alg,
@@ -67,7 +79,7 @@ pickle.dump(intermediate_policy_config, open('/home/patrick/models/fullGuiTest/i
 alg = 'ppo2'
 env = 'BreakoutNoFrameskip-v4'
 num_timesteps = 50000000
-save_path = '/home/patrick/models/fullGuiTest/agent50M'
+save_path = '/home/patrick/models/fullGuiTest/agent50MDemo'
 load_path = '/home/patrick/models/breakout-reward-RL/breakout_50M_ppo2'
 custom_reward_path = '/home/patrick/models/fullGuiTest/fullTest.params'
 full_policy_config = {
@@ -80,3 +92,75 @@ full_policy_config = {
 }
 
 pickle.dump(full_policy_config, open('/home/patrick/models/fullGuiTest/fullPolicy.config', "wb"))
+
+'''
+from baselines.common.cmd_util import make_vec_env
+from baselines.common.vec_env import VecFrameStack
+from LearningModel.AgentClasses import PPO2Agent
+from LearningModel.LearnReward import Find_all_Models
+from os.path import join
+import tensorflow as tf
+model_dir = "/home/patrick/models/BreakoutNoFrameskip-v4-demonstrator"
+env_id = 'BreakoutNoFrameskip-v4'
+env_type = 'atari'
+
+env = make_vec_env(env_id, env_type, 1, 0,
+                   wrapper_kwargs={
+                       'clip_rewards': False,
+                       'episode_life': False,
+                   })
+env = VecFrameStack(env, 4)
+agent = PPO2Agent(env, 'atari', True)
+#agent.load("/home/patrick/Downloads/breakout_25/00001")
+
+checkpoints = Find_all_Models(model_dir)
+print('found models: ' + str(checkpoints))
+
+
+TrajectoryObservations = [] # the set of observations for each demo
+TrajectoryTotalRewards = [] #the total reward of each demo
+
+#now loop over each model and load it
+for model in checkpoints:
+
+    model_path = join(model_dir, model)
+    agent.load(model_path)
+
+    for demo in range(1):
+        observations = []
+        totalReward = 0
+
+        currentReward = 0
+        currentObservation = env.reset()
+        #the shape of the observations is (1,84,84, 4) so take only the first slice to remove the first dimension
+        shapedObservations = currentObservation[0]
+        timeSteps = 0
+        done = False
+
+        #run the demo
+        while True:
+            observations.append(shapedObservations)
+            totalReward += currentReward
+
+            action = agent.act(currentObservation,  currentReward, done)
+            currentObservation, currentReward, done, info = env.step(action)
+            shapedObservations = currentObservation[0]
+            timeSteps += 1
+
+            if done:
+                observations.append(shapedObservations)
+                totalReward += currentReward
+                print("generated demo from model at {}, demo length: {}, total reward: {}".
+                      format(model_path, timeSteps, totalReward))
+                break
+
+        #save the results
+        #TrajectoryObservations.append(observations)
+        #TrajectoryTotalRewards.append(totalReward)
+        tf.keras.backend.clear_session()
+        demonstration = (observations, totalReward)
+        pickle.dump(demonstration, open(model_path+".obs", "wb"))
+
+print("finished trajectory generation, Total demos: {}, min reward: {}, max reward: {}".format(
+    len(TrajectoryObservations), min(TrajectoryTotalRewards), max(TrajectoryTotalRewards)))
+'''

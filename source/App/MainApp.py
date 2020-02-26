@@ -25,22 +25,25 @@ class MainGUI:
         self.reinforcementLearning_button = Button(master, text="Learn to perform task", command=self.create_ReinforcementLearning)
         self.reinforcementLearning_button.pack()
 
-        self.evaluation_button = Button(master, text="Evaluate a trained model", command=self.create_Evaluation)
+        #self.evaluation_button = Button(master, text="Evaluate a trained model", command=self.create_Evaluation)
 
     def create_demonstration(self):
         newWindow = tkinter.Toplevel(self.master)
-        CreateDemosGUI(newWindow)
+        gui = CreateDemosGUI(newWindow)
+        gui.load_config('/home/patrick/models/fullGuiTest/createDemos.config')
 
     def create_LearnReward(self):
         newWindow= tkinter.Toplevel(self.master)
-        SetupRewardLearning(newWindow)
+        gui = SetupRewardLearning(newWindow)
+        gui.loadConfig('/home/patrick/models/fullGuiTest/learnReward.config')
 
     def create_ReinforcementLearning(self):
         newWindow = tkinter.Toplevel(self.master)
-        SetupTrainPolicy(newWindow)
+        gui = SetupTrainPolicy(newWindow)
+        gui.loadConfig('/home/patrick/models/fullGuiTest/trainPolicy.config')
 
-    def create_Evaluation(self):
-        print("creating evaluation of existing model")
+    #def create_Evaluation(self):
+        #print("creating evaluation of existing model")
 
 if __name__ == '__main__':
     rootWindow = Tk()

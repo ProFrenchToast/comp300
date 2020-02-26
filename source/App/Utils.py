@@ -429,6 +429,7 @@ def train_reward_network_visual(rewardNetwork, optimiser, training_trajectories,
 
             #sleep for a bit to make the videos look nice
             time.sleep(0.033 * len(shuffled_trajectories[i][0]) + 3)
+            logging.info("    {}: loss: {}, epoch loss: ".format(i, loss_value, epoch_loss))
 
         epoch_avg_loss = epoch_loss / len(shuffled_labels)
         logging.info("Epoch: {}, Cumulative loss: {}, loss this epoch: {}".format(epoch, cumulative_loss, epoch_avg_loss))

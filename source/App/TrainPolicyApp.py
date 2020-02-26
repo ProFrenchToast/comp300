@@ -122,7 +122,7 @@ class SetupTrainPolicy:
 
     def loadConfig(self, filename):
         try:
-            config = pickle.load(open('/home/patrick/models/fullGuiTest/trainPolicy.config', "rb"))
+            config = pickle.load(open(filename, "rb"))
 
             self.env_variable.set(config.get('env'))
 
@@ -237,5 +237,5 @@ class ActiveTrainPolicy:
 if __name__ == '__main__':
     root = Tk()
     gui = SetupTrainPolicy(root)
-    gui.loadConfig('/home/patrick/models/fullGuiTest/trainPolicy.config')
+
     root.mainloop()

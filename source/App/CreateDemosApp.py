@@ -3,8 +3,8 @@ from tkinter import filedialog
 from App.Utils import getAvailableEnvs, makeDemoFromAgent
 from os import path
 import subprocess
+import pickle
 
-import tensorflow as tf
 
 """This is the gui for creating demonstrations and demonstrators for the learning"""
 class CreateDemosGUI:
@@ -147,6 +147,22 @@ class CreateDemosGUI:
             makeDemoFromAgent(saveDir+"/"+str(nextTrained), fullEnvName, agent=agent)
             lastTrained = nextTrained
         print("finished training")
+
+    def load_config(self, filename):
+        try:
+            config = pickle.load(open(filename, "rb"))
+            self.env_variable.set(config.get('env'))
+
+            self.steps_input.delete(0, "end")
+            self.steps_input.insert(0, config.get('steps_per_demo'))
+
+            self.numDemos_input.delete(0, "end")
+            self.numDemos_input.insert(0, config.get('num_demos'))
+
+            self.saveDir_variable = config.get('save_dir')
+            self.saveDirDisplay_label.config(text="Save Dir: {}".format(self.saveDir_variable))
+        except:
+            return
 
 
 if __name__ == '__main__':
