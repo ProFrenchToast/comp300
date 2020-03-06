@@ -1,4 +1,5 @@
 from baselines.common.vec_env import VecFrameStack
+from gym import register
 
 from LearningModel.AgentClasses import *
 from baselines.common.cmd_util import make_vec_env
@@ -35,17 +36,21 @@ def getAvgReward(agent, env, iterations):
     return mean, minR, maxR, std
 
 if __name__ == '__main__':
-    model_path = "/home/patrick/models/breakout-reward-RL2/breakout_50M_ppo2"
-    env_id = 'BreakoutNoFrameskip-v4'
-    env_type = 'atari'
+    register(id='ChessSelf-v0',
+             entry_point='Chess.ChessWrapper:ChessEnv',
+             max_episode_steps=1000)
+    model_path = "/home/patrick/models/chessTest/chess20Mppo2"
+    env_id = 'ChessSelf-v0'
+    env_type = 'ChessWrapper'
 
     env = make_vec_env(env_id, env_type, 1, 0,
+                       flatten_dict_observations=True,
                        wrapper_kwargs={
                            'clip_rewards': False,
                            'episode_life': False,
                        })
-    env = VecFrameStack(env, 4)
-    agent = PPO2Agent(env, 'atari', True)
+    #env = VecFrameStack(env, 4)
+    agent = PPO2Agent(env, env_type, True)
     agent.load(model_path)
 
     meanR, minR, maxR, std = getAvgReward(agent, env, 20)

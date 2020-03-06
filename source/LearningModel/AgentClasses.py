@@ -4,7 +4,6 @@ import torch.nn as nn
 import torch.nn.functional as functional
 from baselines.common.policies import build_policy
 from baselines.ppo2.model import Model
-from gym.envs.mujoco import MujocoEnv
 from gym.envs.atari import atari_env
 
 class RewardNetwork (nn.Module):
@@ -99,7 +98,7 @@ class PPO2Agent(Agent):
 
         if env_type == 'atari':
             policy = build_policy(env, 'cnn')
-        elif env_type == 'mujoco':
+        else:
             policy = build_policy(env, 'mlp')
 
         make_model = lambda: Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=1, nbatch_train=1,
