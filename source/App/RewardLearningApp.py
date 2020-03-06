@@ -13,8 +13,14 @@ class SetupRewardLearning:
         self.master = master
         master.title("Learning from demonstrations")
 
-        self.parameter_frame = Frame(master)
-        self.parameter_frame.pack(side=LEFT)
+        self.leftFrame = Frame(master)
+        self.leftFrame.pack(fill=Y, expand=TRUE, side=LEFT)
+
+        self.param_title = Label(self.leftFrame, text="Parameters:", highlightthickness=5)
+        self.param_title.pack(anchor=N)
+
+        self.parameter_frame = Frame(self.leftFrame)
+        self.parameter_frame.pack(anchor=CENTER)
 
         self.demo_frame = Frame(master)
         self.demo_frame.pack(side=RIGHT, fill=BOTH, expand=True)
@@ -24,59 +30,59 @@ class SetupRewardLearning:
         #todo: add the option of different network sizes
 
         # set up the number of training epochs
-        self.epoch_label = Label(self.parameter_frame, text="Number of training epochs")
-        self.epoch_label.grid(row=1, column=0)
+        self.epoch_label = Label(self.parameter_frame, text="Number of training epochs: ", highlightthickness=5)
+        self.epoch_label.grid(row=1, column=0, sticky=W)
 
-        self.epoch_input = Spinbox(self.parameter_frame, from_=1, to=100)
+        self.epoch_input = Spinbox(self.parameter_frame, from_=1, to=100, highlightthickness=5)
         self.epoch_input.grid(row=1, column=1)
 
         # set up the min snippet size
-        self.minSnipp_label = Label(self.parameter_frame, text="Min snippet length")
-        self.minSnipp_label.grid(row=2, column=0)
+        self.minSnipp_label = Label(self.parameter_frame, text="Min snippet length: ", highlightthickness=5)
+        self.minSnipp_label.grid(row=2, column=0, sticky=W)
 
-        self.minSnipp_input = Spinbox(self.parameter_frame, from_=1, to=1000000)
+        self.minSnipp_input = Spinbox(self.parameter_frame, from_=1, to=1000000, highlightthickness=5)
         self.minSnipp_input.grid(row=2, column=1)
 
         # set up the max snippet size
-        self.maxSnipp_label = Label(self.parameter_frame, text="Max snippet length")
-        self.maxSnipp_label.grid(row=3, column=0)
+        self.maxSnipp_label = Label(self.parameter_frame, text="Max snippet length: ", highlightthickness=5)
+        self.maxSnipp_label.grid(row=3, column=0, sticky=W)
 
-        self.maxSnipp_input = Spinbox(self.parameter_frame, from_=1, to=1000000)
+        self.maxSnipp_input = Spinbox(self.parameter_frame, from_=1, to=1000000, highlightthickness=5)
         self.maxSnipp_input.grid(row=3, column=1)
 
         # set up the number of snippets
-        self.noSnipp_label = Label(self.parameter_frame, text="Number of snippets in training set")
-        self.noSnipp_label.grid(row=4, column=0)
+        self.noSnipp_label = Label(self.parameter_frame, text="Training set size: ", highlightthickness=5)
+        self.noSnipp_label.grid(row=4, column=0, sticky=W)
 
-        self.noSnipp_input = Spinbox(self.parameter_frame, from_=1, to=100000000)
+        self.noSnipp_input = Spinbox(self.parameter_frame, from_=1, to=100000000, highlightthickness=5)
         self.noSnipp_input.grid(row=4, column=1)
 
         # setup the save directory
-        self.saveDir_label = Label(self.parameter_frame, text="Save directory: ")
-        self.saveDir_label.grid(row=5, column=0)
+        self.saveDir_label = Label(self.parameter_frame, text="Save directory: ", highlightthickness=5)
+        self.saveDir_label.grid(row=5, column=0, sticky=W)
 
         self.saveDir_variable = ""
-        self.saveDir_button = Button(self.parameter_frame, text="select folder", command=self.setSaveDir)
+        self.saveDir_button = Button(self.parameter_frame, text="select folder", command=self.setSaveDir, highlightthickness=5)
         self.saveDir_button.grid(row=5, column=1)
 
-        self.saveDirDisplay_label = Label(self.parameter_frame, text="no folder selected")
+        self.saveDirDisplay_label = Label(self.parameter_frame, text="no folder selected", highlightthickness=5)
         self.saveDirDisplay_label.grid(row=6, column=0, columnspan=2)
 
         # set up the start training button
-        self.start_button = Button(self.parameter_frame, text="Start training", command=self.tryStart)
-        self.start_button.grid(row=7, column=0)
+        self.start_button = Button(self.parameter_frame, text="Start training", command=self.tryStart, highlightthickness=5)
+        self.start_button.grid(row=7, column=1)
 
         #setup the close button
-        self.close_button = Button(self.parameter_frame, text="Cancel", command=self.emptyAndClose)
-        self.close_button.grid(row=7, column=1)
+        self.close_button = Button(self.parameter_frame, text="Cancel", command=self.emptyAndClose, highlightthickness=5)
+        self.close_button.grid(row=7, column=0)
 
         #Now set up the demo frame
         #set up the demos label
-        self.demo_label = Label(self.demo_frame, text="Demonstrations selected:")
+        self.demo_label = Label(self.demo_frame, text="Demonstrations selected:", highlightthickness=5)
         self.demo_label.pack()
 
         #set up the frame to hold the demos and play buttons
-        self.list_frame =ScrollableFrame(self.demo_frame)
+        self.list_frame =ScrollableFrame(self.demo_frame, highlightthickness=5)
         self.list_frame.pack(fill=BOTH, expand=True)
 
         #setup the list box to order the demos
@@ -95,11 +101,11 @@ class SetupRewardLearning:
         self.makeButtons()
 
         #finally add the buttons for adding demos and clearing the demos
-        self.addDemo_button = Button(self.demo_frame, text="Add demonstration", command=self.addDemo)
-        self.addDemo_button.pack()
+        self.addDemo_button = Button(self.demo_frame, text="Add demonstration", command=self.addDemo, highlightthickness=10)
+        self.addDemo_button.pack(side=RIGHT)
 
-        self.clear_button = Button(self.demo_frame, text="Clear demonstrations", command=self.clearDemos)
-        self.clear_button.pack()
+        self.clear_button = Button(self.demo_frame, text="Clear demonstrations", command=self.clearDemos, highlightthickness=10)
+        self.clear_button.pack(side=LEFT)
 
     def makeButtons(self):
         #first remove any existing buttons
@@ -112,12 +118,15 @@ class SetupRewardLearning:
         for demo in self.demos:
             demosStr.append(str(demo))
         #then make a button for each demo
+        pixel = PhotoImage(width=1, height=1)
         for i in range(len(self.demos)):
             filename = listOfDemos[i]
             indexInDemos = demosStr.index(filename)
             self.playButton_array.append(Button(self.playButton_Frame, text="Play",
-                                                command=self.demos[indexInDemos].play))
-            self.playButton_array[i].pack(anchor="n")
+                                                command=self.demos[indexInDemos].play,
+                                                image=pixel, compound='c',
+                                                height=5, width=30))
+            self.playButton_array[i].pack()
 
 
     def setSaveDir(self):
@@ -259,13 +268,23 @@ class ActiveRewardLearning:
         self.video_frame = Frame(master)
         self.video_frame.pack()
 
+        self.left_videoFrame = Frame(self.video_frame, highlightthickness=10)
+        self.left_videoFrame.pack(side=LEFT, fill=X, expand=TRUE)
+
+        self.right_videoFrame = Frame(self.video_frame, highlightthickness=10)
+        self.right_videoFrame.pack(side=RIGHT, fill=X, expand=TRUE)
+
         #now add the canvases to hold the videos
-        self.video_canvas1 = Canvas(master=self.video_frame)
-        self.video_canvas1.pack(side=LEFT)
+        self.leftLabel = Label(self.left_videoFrame, text="Worse Demo:")
+        self.leftLabel.pack()
+        self.video_canvas1 = Canvas(master=self.left_videoFrame, width=160, height=200)
+        self.video_canvas1.pack()
         self.video1 = MyVideoCapture("/home/patrick/PycharmProjects/comp300/source/videos/Agent50MTrain.mp4")
 
-        self.video_canvas2 = Canvas(master=self.video_frame)
-        self.video_canvas2.pack(side=RIGHT)
+        self.rightLabel = Label(self.right_videoFrame, text="Better Demo:")
+        self.rightLabel.pack()
+        self.video_canvas2 = Canvas(master=self.right_videoFrame, width=160, height=200)
+        self.video_canvas2.pack()
         self.video2 = MyVideoCapture("/home/patrick/PycharmProjects/comp300/source/videos/Agent50MTrain2.mp4")
 
         #now add the output box

@@ -13,63 +13,69 @@ class SetupTrainPolicy:
         self.master = master
         master.title("Learning to complete task")
 
-        # set up the environment choice
-        self.env_label = Label(master, text="Environment: ")
-        self.env_label.grid(row=0, column=0)
+        self.title = Label(self.master, text="Training Parameters", highlightthickness=10)
+        self.title.pack()
 
-        self.env_variable = StringVar(master)
+        paramFrame = Frame(self.master, highlightthickness=10)
+        paramFrame.pack()
+
+        # set up the environment choice
+        self.env_label = Label(paramFrame, text="Environment: ", highlightthickness=5)
+        self.env_label.grid(row=0, column=0, sticky=W)
+
+        self.env_variable = StringVar(paramFrame)
         self.env_variable.set('')
         # not sure if this is needed: self.env_variable.trace()
         self.env_options = getAvailableEnvs()
 
-        self.env_menu = OptionMenu(master, self.env_variable, *self.env_options)
-        self.env_menu.grid(row=0, column=1)
+        self.env_menu = OptionMenu(paramFrame, self.env_variable, *self.env_options)
+        self.env_menu.grid(row=0, column=1, sticky=N+E+S+W)
 
         # setup the reward network to use
-        self.reward_label = Label(master, text="Learned reward: ")
-        self.reward_label.grid(row=1, column=0)
+        self.reward_label = Label(paramFrame, text="Learned reward: ", highlightthickness=5)
+        self.reward_label.grid(row=1, column=0, sticky=W)
 
         self.reward_variable = ""
-        self.reward_button = Button(master, text="select folder", command=self.setRewardNetwork)
-        self.reward_button.grid(row=1, column=1)
+        self.reward_button = Button(paramFrame, text="select folder", command=self.setRewardNetwork, highlightthickness=5)
+        self.reward_button.grid(row=1, column=1, sticky=N+E+S+W)
 
-        self.rewardDisplay_label = Label(master, text="no folder selected")
+        self.rewardDisplay_label = Label(paramFrame, text="no folder selected", highlightthickness=20)
         self.rewardDisplay_label.grid(row=2, column=0, columnspan=2)
 
         # set up the steps the policy should be trained for
-        self.steps_label = Label(master, text="Training steps: ")
-        self.steps_label.grid(row=3, column=0)
+        self.steps_label = Label(paramFrame, text="Training steps: ", highlightthickness=5)
+        self.steps_label.grid(row=3, column=0, sticky=W)
 
-        self.steps_input = Spinbox(master, from_=1, to=100000000)
-        self.steps_input.grid(row=3, column=1)
+        self.steps_input = Spinbox(paramFrame, from_=1, to=100000000, highlightthickness=5)
+        self.steps_input.grid(row=3, column=1, sticky=N+E+S+W)
 
         # setup the save directory
-        self.saveDir_label = Label(master, text="Save directory: ")
-        self.saveDir_label.grid(row=4, column=0)
+        self.saveDir_label = Label(paramFrame, text="Save directory: ", highlightthickness=5)
+        self.saveDir_label.grid(row=4, column=0, sticky=W)
 
         self.saveDir_variable = ""
-        self.saveDir_button = Button(master, text="select folder", command=self.setSaveDir)
-        self.saveDir_button.grid(row=4, column=1)
+        self.saveDir_button = Button(paramFrame, text="select folder", command=self.setSaveDir, highlightthickness=5)
+        self.saveDir_button.grid(row=4, column=1, sticky=N+E+S+W)
 
-        self.saveDirDisplay_label = Label(master, text="no folder selected")
+        self.saveDirDisplay_label = Label(paramFrame, text="no folder selected", highlightthickness=20)
         self.saveDirDisplay_label.grid(row=5, column=0, columnspan=2)
 
         # setup the log directory
-        self.logDir_label = Label(master, text="log directory: ")
-        self.logDir_label.grid(row=6, column=0)
+        self.logDir_label = Label(paramFrame, text="Log directory: ", highlightthickness=5)
+        self.logDir_label.grid(row=6, column=0, sticky=W)
 
         self.logDir_variable = ""
-        self.logDir_button = Button(master, text="select folder", command=self.setLogDir)
-        self.logDir_button.grid(row=6, column=1)
+        self.logDir_button = Button(paramFrame, text="select folder", command=self.setLogDir, highlightthickness=5)
+        self.logDir_button.grid(row=6, column=1, sticky=N+E+S+W)
 
-        self.logDirDisplay_label = Label(master, text="no folder selected")
+        self.logDirDisplay_label = Label(paramFrame, text="no folder selected", highlightthickness=20)
         self.logDirDisplay_label.grid(row=7, column=0, columnspan=2)
 
         # set up the cancel and run buttons
-        self.cancel_button = Button(master, text="Cancel", command=self.cancel)
+        self.cancel_button = Button(paramFrame, text="Cancel", command=self.cancel, highlightthickness=5)
         self.cancel_button.grid(row=8, column=0)
 
-        self.run_button = Button(master, text="Run", command=self.tryRun)
+        self.run_button = Button(paramFrame, text="Start", command=self.tryRun, highlightthickness=5)
         self.run_button.grid(row=8, column=1)
 
     def setRewardNetwork(self):
@@ -152,7 +158,9 @@ class ActiveTrainPolicy:
             self.log_dir = "/tmp/InverseRL-{}".format(timestamp)
 
         #set up the canvas for the video
-        self.video_canvas = Canvas(master)
+        self.label = Label(master, text="Live Training:", highlightthickness=10)
+        self.label.pack()
+        self.video_canvas = Canvas(master, width=160, height=200)
         self.video_canvas.pack()
 
         #not sure how i will even do this because it doesnt produce .mp4 files. I guess probably capture the new window or
@@ -161,7 +169,7 @@ class ActiveTrainPolicy:
         self.set_new_video(np.zeros((1, 84, 84, 4), dtype=np.uint8))
 
         # now add the output box
-        self.output_frame = Frame(self.master)
+        self.output_frame = Frame(self.master, highlightthickness=10)
         self.output_frame.pack()
 
         self.output_box = ScrolledText.ScrolledText(self.output_frame, state='disabled', font='TkFixedFont')
