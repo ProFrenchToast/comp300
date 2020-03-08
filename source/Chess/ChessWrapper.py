@@ -25,7 +25,7 @@ class ChessEnv(Env):
         self.opponent = opponent
         if opponent == "stockfish":
             self.opponent_engine = chess.engine.SimpleEngine.popen_uci("/usr/games/stockfish")
-            self.opponent_engine.configure({"Skill Level": 0})
+            self.opponent_engine.configure({"Skill Level": 5})
         self.limit = limit
 
         if startingSide == None:

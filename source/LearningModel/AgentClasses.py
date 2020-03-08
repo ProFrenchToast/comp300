@@ -98,6 +98,8 @@ class PPO2Agent(Agent):
 
         if env_type == 'atari':
             policy = build_policy(env, 'cnn')
+        elif env_type == "ChessWrapper":
+            policy = build_policy(env, 'mlp', {'num_layers':5})
         else:
             policy = build_policy(env, 'mlp')
 

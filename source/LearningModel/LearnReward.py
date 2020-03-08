@@ -169,10 +169,10 @@ def create_training_test_labels(ratio, demonstrations, demo_rewards, num_full_tr
     training_rewards = copyDemo_rewards[0:numTrainingDemos]
     testing_rewards = copyDemo_rewards[numTrainingDemos:numTrainingDemos + numTestDemos]
 
-    training_full_traj = np.int(np.floor(ratio * num_full_trajectories) +1)
+    training_full_traj = np.int(np.floor(ratio * num_full_trajectories) +0)
     testing_full_traj = num_full_trajectories - training_full_traj
 
-    training_sub_traj = np.int(np.floor(ratio * num_sub_trajectories) +1)
+    training_sub_traj = np.int(np.floor(ratio * num_sub_trajectories) +0)
     testing_sub_traj = num_sub_trajectories - training_sub_traj
 
     training_observations, training_labels = create_labels(training_demos, training_rewards, training_full_traj,
