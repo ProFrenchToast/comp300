@@ -118,13 +118,13 @@ class SetupRewardLearning:
         for demo in self.demos:
             demosStr.append(str(demo))
         #then make a button for each demo
-        pixel = PhotoImage(width=1, height=1)
+        self.pixel = PhotoImage(width=1, height=1)
         for i in range(len(self.demos)):
             filename = listOfDemos[i]
             indexInDemos = demosStr.index(filename)
             self.playButton_array.append(Button(self.playButton_Frame, text="Play",
                                                 command=self.demos[indexInDemos].play,
-                                                image=pixel, compound='c',
+                                                image=self.pixel, compound='c',
                                                 height=5, width=30))
             self.playButton_array[i].pack()
 

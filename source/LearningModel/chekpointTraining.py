@@ -1,11 +1,11 @@
 import subprocess
 import math
 
-envName = "BreakoutNoFrameskip-v4"
+envName = "HalfCheetah-v2"
 algorithm = "ppo2"
-checkpointDir = "~/models/{}-groundTruth-test".format(envName)
-stepSize = int(math.pow(10, 3))
-stepSizeStr = "1e3"
+checkpointDir = "~/models/{}-demonstator".format(envName)
+stepSize = int(math.pow(10, 5))
+stepSizeStr = "1e5"
 noCheckpoints = 20
 
 #first generate the initial step
