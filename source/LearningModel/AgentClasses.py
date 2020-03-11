@@ -8,10 +8,10 @@ from gym.envs.atari import atari_env
 
 class RewardNetwork (nn.Module):
     #setup the nn by initialising the layers plus other variables
-    def __init__(self, lossFunction, env=atari_env.AtariEnv()):
+    def __init__(self, lossFunction, env_type, env=atari_env.AtariEnv()):
         super().__init__()
         #check to see if this is a visual domain that convolutions would make sense for
-        self.is_visual = isinstance(env, atari_env.AtariEnv)
+        self.is_visual = env_type == "atari"
 
         if self.is_visual: #if atari env
             #todo: try different network configurations
