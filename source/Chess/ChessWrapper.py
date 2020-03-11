@@ -168,6 +168,20 @@ class ChessEnv(Env):
         elif mode == 'asci':
             print(self.board)
 
+        elif mode == 'rgb_array':
+            svgInfo = chess.svg.board(board=self.board)
+            pngSurface = svg2png(bytestring=bytes(svgInfo, 'UTF-8'))
+            save_file = tempfile.NamedTemporaryFile()
+            name = save_file.name
+            save_file.write(pngSurface)
+            image = cv2.imread(name, cv2.IMREAD_UNCHANGED)
+            save_file.close()
+            trans_mask = image[:, :, 3] == 0
+            image[trans_mask] = [255, 255, 255, 255]
+            new_img = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+            return new_img
+
+
     def close(self):
         #close the dependencies such as the game system and opponent
         self.board.clear()
