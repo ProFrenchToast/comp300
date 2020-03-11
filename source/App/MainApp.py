@@ -1,5 +1,8 @@
 import tkinter
 from tkinter import Tk, Label, Button, Frame
+import sys
+sys.path.extend(['/home/patrick/PycharmProjects/comp300', '/home/patrick/PycharmProjects/comp300/source'])
+
 from App.CreateDemosApp import CreateDemosGUI
 from App.RewardLearningApp import SetupRewardLearning
 from App.TrainPolicyApp import SetupTrainPolicy
