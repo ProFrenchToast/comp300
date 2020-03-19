@@ -1,5 +1,6 @@
 from LearningModel.AgentClasses import *
 from LearningModel.LearnReward import *
+from LearningModel.cmd_utils import chessLearnRewardParser
 from gym import register
 import chess
 import chess.engine
@@ -46,6 +47,9 @@ if __name__ == '__main__':
              entry_point='Chess.ChessWrapper:ChessEnv',
              max_episode_steps=1000)
 
+    parser = chessLearnRewardParser()
+    args, unknown_args = parser.parse_known_args(sys.argv)
+
     env_id = 'ChessSelf-v0'
     env_type = 'ChessWrapper'
 
@@ -56,23 +60,25 @@ if __name__ == '__main__':
                            'episode_life': False,
                        })
 
-    trajectories, rewards = generate_chess_demos(env, 10000)
-    trajectories = np.array(trajectories)
-    rewards = np.array(rewards)
-    training_obs, training_labels, test_obs, test_labels = create_training_test_labels(0.5, trajectories, rewards, 120000,
-                                                                                       0, 50, 150)
+    trajectories, rewards = generate_chess_demos(env, args.num_demonstrations)
+    training_obs, training_labels, test_obs, test_labels = create_training_test_labels(0.5, trajectories, rewards,
+                                                                                       args.num_full_demonstrations * 2,
+                                                                                       args.num_sub_demonstrations * 2,
+                                                                                       args.min_snippet_length,
+                                                                                       args.max_snippet_length)
     trajectories = 0
     rewards = 0
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     loss = nn.CrossEntropyLoss()
-    learning_rate = 0.00005
+    learning_rate = args.learning_rate
     weight_decay = 0
-    network = RewardNetwork(loss, env=env)
+    network = RewardNetwork(loss, env=env, env_type=args.env_type)
     network.to(device)
     optimiser = optim.Adam(network.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
-    train_reward_network(network, optimiser, training_obs, training_labels,5)
-    torch.save(network.state_dict(), "/home/patrick/models/chess-reward/fullTest.params")
+    train_reward_network(network, optimiser, training_obs, training_labels, args.training_epochs,
+                         checkpoint_dir=args.checkpoint_dir)
+    torch.save(network.state_dict(), args.save_path)
     accuracy = calc_accuracy(network, test_obs, test_labels)
     print("accuracy of test network is {}%".format(accuracy))

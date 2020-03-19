@@ -75,3 +75,25 @@ def learnRewardParser():
                                                  "will be saved", type=str)
     return parser
 
+def chessLearnRewardParser():
+    parser = arg_parser("Learn to approximate the reward function of chess. This files does this by using expert\n"
+                        "demonstrations from stockfish. To approximate the reward function using pre-trained agent\n"
+                        "try using the main LearnReward.py.\n")
+    parser.add_argument("--num_demonstrations", help="The number of demonstrations to be created", type=int,
+                        default=10000)
+    parser.add_argument("--num_full_demonstrations", help="The number of full demonstrations in the train and test set",
+                        type=int, default=0)
+    parser.add_argument("--num_sub_demonstrations", help="The number of sub demonstrations (snippets of full demos) in "
+                                                         "the train and test set", type=int, default=60000)
+    parser.add_argument("--min_snippet_length", help="The minimum length of the sub demonstrations", type=int,
+                        default=2)
+    parser.add_argument("--max_snippet_length", help="The maximin length of the sub demonstrations", type=int,
+                        default=5)
+    parser.add_argument("--learning_rate", help="The learning rate used for the network training", type=float,
+                        default=0.00005)
+    parser.add_argument("--training_epochs", help="The number of epochs used to train the network", type=int, default=5)
+    parser.add_argument("--save_path", help="The file the network will be saved to after training", type=str,
+                        required=True)
+    parser.add_argument("--checkpoint_dir", help="The directory the where log files and checkpoints after each epoch "
+                                                 "will be saved", type=str)
+    return parser

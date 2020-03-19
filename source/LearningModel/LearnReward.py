@@ -1,6 +1,7 @@
 from baselines.common.vec_env import VecFrameStack
 from baselines.common.cmd_util import make_vec_env
 import torch.optim as optim
+from gym import register
 
 from os import listdir
 from os.path import isfile, join
@@ -290,6 +291,10 @@ def generate_demos_from_videos(video_dir):
     return trajectories, rewards
 
 if __name__ == '__main__':
+    register(id='ChessSelf-v0',
+             entry_point='Chess.ChessWrapper:ChessEnv',
+             max_episode_steps=1000)
+
     args_parser = learnRewardParser()
     args, unknown_args = args_parser.parse_known_args(sys.argv)
 
