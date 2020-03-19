@@ -279,13 +279,13 @@ class ActiveRewardLearning:
         self.leftLabel.pack()
         self.video_canvas1 = Canvas(master=self.left_videoFrame, width=160, height=200)
         self.video_canvas1.pack()
-        self.video1 = MyVideoCapture("/home/patrick/PycharmProjects/comp300/source/videos/Agent50MTrain.mp4")
+        self.video1 = MyVideoCapture("/home/patrick/PycharmProjects/comp300/comp300/videos/Agent50MTrain.mp4")
 
         self.rightLabel = Label(self.right_videoFrame, text="Better Demo:")
         self.rightLabel.pack()
         self.video_canvas2 = Canvas(master=self.right_videoFrame, width=160, height=200)
         self.video_canvas2.pack()
-        self.video2 = MyVideoCapture("/home/patrick/PycharmProjects/comp300/source/videos/Agent50MTrain2.mp4")
+        self.video2 = MyVideoCapture("/home/patrick/PycharmProjects/comp300/comp300/videos/Agent50MTrain2.mp4")
 
         #now add the output box
         self.output_frame = Frame(self.master)
