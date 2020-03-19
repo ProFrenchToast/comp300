@@ -77,10 +77,8 @@ class VecPytorchRewardEnv(VecEnvWrapper):
     def __init__(self, venv, reward_net_path, env_name, env_type):
         VecEnvWrapper.__init__(self, venv)
         self.env_name = env_name
-        if env_type == 'retro' or env_type == 'atari' or env_type == 'mujoco':
-            self.reward_net = AtariRewardNetwork(venv)
-        else:
-            print("error no custom reward defined for {}:{} environment".format(env_name, env_type))
+        self.reward_net = AtariRewardNetwork(venv)
+
         self.reward_net.load_state_dict(torch.load(reward_net_path))
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.reward_net.to(self.device)
