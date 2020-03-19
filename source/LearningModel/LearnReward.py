@@ -1,12 +1,15 @@
 from baselines.common.vec_env import VecFrameStack
-
-from LearningModel.AgentClasses import *
 from baselines.common.cmd_util import make_vec_env
 import torch.optim as optim
-import torch.nn as nn
+
 from os import listdir
 from os.path import isfile, join
 import re
+from LearningModel.AgentClasses import *
+from LearningModel.cmd_utils import learnRewardParser
+import sys
+import pickle
+from App.Utils import DemoObsAndVideo
 
 
 #a method to find all the models in a given dir that are just numbers
@@ -22,6 +25,22 @@ def Find_all_Models(model_dir):
     for file in allFiles:
         if re.match('^[0-9]+$',file.title()):
             checkpoints.append(file.title())
+
+    return checkpoints
+
+#a method to find all the videos in a given dir that are just numbers
+def Find_all_Videos(video_dir):
+
+    checkpoints = []
+    filesandDirs = listdir(video_dir)
+    allFiles = []
+    for i in filesandDirs:
+        if isfile(join(video_dir, i)):
+            allFiles.append(i)
+
+    for file in allFiles:
+        if re.match('^[0-9]+\.mp4$',file):
+            checkpoints.append(file)
 
     return checkpoints
 
@@ -255,38 +274,80 @@ def calc_accuracy(reward_network, test_trajectories, testing_lables):
                 num_correct += 1.
     return num_correct / len(test_trajectories)
 
+def generate_demos_from_videos(video_dir):
+    videos = Find_all_Videos(video_dir)
+    trajectories = []
+    rewards = []
+
+    for file in videos:
+        traj = DemoObsAndVideo.getObsFrommp4(join(video_dir,file))
+        traj_shaped = traj[:, 0, :, :, :]
+        trajectories.append(traj_shaped)
+        splitName = file.split(".")
+        reward = int(splitName[0])
+        rewards.append(reward)
+
+    return trajectories, rewards
 
 if __name__ == '__main__':
-    model_path = "/home/patrick/models/fullGuiTest"
-    env_id = 'BreakoutNoFrameskip-v4'
-    env_type = 'atari'
+    args_parser = learnRewardParser()
+    args, unknown_args = args_parser.parse_known_args(sys.argv)
 
+    env_id = args.env
+    env_type = args.env_type
+    trajectories = []
+    rewards = []
     env = make_vec_env(env_id, env_type, 1, 0,
                        wrapper_kwargs={
                            'clip_rewards': False,
                            'episode_life': False,
                        })
     env = VecFrameStack(env, 4)
-    agent = PPO2Agent(env, env_type, True)
-    #agent.load("/home/patrick/Downloads/breakout_25/00001")
 
-    trajectories, rewards = generate_demos_from_checkpoints(env, agent, model_path, 1)
+
+    if not args.model_dir is None:
+        model_path = args.model_dir
+        if env_type != "atari":
+            env = make_vec_env(env_id, env_type, 1, 0,
+                               flatten_dict_observations=True,
+                               wrapper_kwargs={
+                                   'clip_rewards': False,
+                                   'episode_life': False,
+                               })
+        agent = PPO2Agent(env, env_type, True)
+
+        trajectories, rewards = generate_demos_from_checkpoints(env, agent, model_path, args.demos_per_model)
+    elif not args.video_dir is None:
+        trajectories, rewards = generate_demos_from_videos(args.video_dir)
+    elif not args.dateset_path is None:
+        dataset = pickle.load(open(args.dataset_path, "rb"))
+        trajectories = dataset[0]
+        rewards = dataset[1]
+    else:
+        print("need to provide either a model directory, video directory or a dataset path to create the dataset with")
+        exit(1)
+
     trajectories = np.array(trajectories)
     rewards = np.array(rewards)
-    training_obs, training_labels, test_obs, test_labels = create_training_test_labels(0.5, trajectories, rewards, 0, 12000, 50, 150)
+    training_obs, training_labels, test_obs, test_labels = create_training_test_labels(0.5, trajectories, rewards,
+                                                                                       args.num_full_demonstrations*2,
+                                                                                       args.num_sub_demonstrations*2,
+                                                                                       args.min_snippet_length,
+                                                                                       args.max_snippet_length)
     trajectories = 0
     rewards = 0
 
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     loss = nn.CrossEntropyLoss()
-    learning_rate = 0.00005
+    learning_rate = args.learning_rate
     weight_decay = 0
-    network = RewardNetwork(loss, env=env)
+    network = RewardNetwork(loss, env=env, env_type=args.env_type)
     network.to(device)
     optimiser = optim.Adam(network.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
-    train_reward_network(network, optimiser, training_obs, training_labels, 5)
-    torch.save(network.state_dict(), "/home/patrick/models/fullGuiTest/fullTest.params")
+    train_reward_network(network, optimiser, training_obs, training_labels, args.training_epochs,
+                         checkpoint_dir=args.checkpoint_dir)
+    torch.save(network.state_dict(), args.save_path)
     accuracy = calc_accuracy(network, test_obs, test_labels)
     print("accuracy of test network is {}%".format(accuracy))
