@@ -35,7 +35,7 @@ def explained_variance(ypred,y):
     """
     assert y.ndim == 1 and ypred.ndim == 1
     vary = np.var(y)
-    return np.nan if vary==0 else 1 - np.var(y-ypred)/vary
+    return np.nan #if vary==0 else 1 - np.var(y-ypred)/vary
 
 def explained_variance_2d(ypred, y):
     assert y.ndim == 2 and ypred.ndim == 2
