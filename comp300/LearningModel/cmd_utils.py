@@ -97,3 +97,19 @@ def chessLearnRewardParser():
     parser.add_argument("--checkpoint_dir", help="The directory the where log files and checkpoints after each epoch "
                                                  "will be saved", type=str)
     return parser
+
+def recordAgentParser():
+    parser = arg_parser("Record a video of a trained agent performing a task given the agent file and environment.")
+
+    parser.add_argument("--model_path", help="The path to the trained agent that will be recorded", type=str,
+                        required=True)
+    parser.add_argument("--env", help="The environment ID the agent was trained for", type=str, required=True)
+    parser.add_argument("--env_type", help="The type of environment ie atari, mujoco ect", type=str, required=True,
+                        choices=["algorithmic", "atari", "box2d", "classic_control", "ChessWrapper", "mujoco",
+                                 "robotics", "toy_text"])
+    parser.add_argument("--save_path", help="The path to save the video to", type=str, required=True)
+    parser.add_argument("--num_episodes", help="The number of runs through the environment during the recording",
+                        type=int, default=1)
+    parser.add_argument("--render", help="Changes if the environment is rendered to the screen", action='store_true',
+                        default=False)
+    return parser

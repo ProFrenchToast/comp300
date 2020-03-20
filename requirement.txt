@@ -3,7 +3,6 @@ astor==0.8.0
 atari-py==0.2.6
 attrs==19.3.0
 backcall==0.1.0
--e git+https://gitlab.cs.man.ac.uk/f46471pq/comp300.git@9b54f7b0fe74600d81c6a906894f9229b3d63b75#egg=baselines&subdirectory=baselines-master
 bleach==3.1.0
 cairocffi==1.1.0
 CairoSVG==2.4.2
