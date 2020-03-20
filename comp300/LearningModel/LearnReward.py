@@ -292,7 +292,7 @@ def generate_demos_from_videos(video_dir):
 
 if __name__ == '__main__':
     register(id='ChessSelf-v0',
-             entry_point='Chess.ChessWrapper:ChessEnv',
+             entry_point='comp300.Chess.ChessWrapper:ChessEnv',
              max_episode_steps=1000)
 
     args_parser = learnRewardParser()

@@ -220,7 +220,7 @@ if __name__ == '__main__':
     import sys
 
     register(id='ChessSelf-v0',
-             entry_point='Chess.ChessWrapper:ChessEnv',
+             entry_point='comp300.Chess.ChessWrapper:ChessEnv',
              max_episode_steps=1000)
 
     envobj = ChessEnv()

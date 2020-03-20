@@ -39,7 +39,7 @@ def getAvgReward(agent, env, iterations, render):
 
 if __name__ == '__main__':
     register(id='ChessSelf-v0',
-             entry_point='Chess.ChessWrapper:ChessEnv',
+             entry_point='comp300.Chess.ChessWrapper:ChessEnv',
              max_episode_steps=1000)
     parser = getAverageParser()
     args, unknown_args = parser.parse_known_args(sys.argv)

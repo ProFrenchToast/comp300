@@ -44,7 +44,7 @@ def generate_chess_demos(env, num_demos):
 
 if __name__ == '__main__':
     register(id='ChessSelf-v0',
-             entry_point='Chess.ChessWrapper:ChessEnv',
+             entry_point='comp300.Chess.ChessWrapper:ChessEnv',
              max_episode_steps=1000)
 
     parser = chessLearnRewardParser()
