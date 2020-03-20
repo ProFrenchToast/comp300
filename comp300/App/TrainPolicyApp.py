@@ -1,7 +1,7 @@
 import threading
 from os import path
 from tkinter import *
-from App.Utils import *
+from comp300.App.Utils import *
 import PIL.Image, PIL.ImageTk
 from tkinter import filedialog
 import tkinter.scrolledtext as ScrolledText

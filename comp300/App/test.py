@@ -1,5 +1,5 @@
 import tkinter as tk
-from App.Utils import ScrollableFrame, DemoObsAndVideo
+from comp300.App.Utils import ScrollableFrame, DemoObsAndVideo
 import pickle
 
 env = 'Breakout-v4'

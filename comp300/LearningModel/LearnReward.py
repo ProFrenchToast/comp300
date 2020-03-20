@@ -6,11 +6,11 @@ from gym import register
 from os import listdir
 from os.path import isfile, join
 import re
-from LearningModel.AgentClasses import *
-from LearningModel.cmd_utils import learnRewardParser
+from comp300.LearningModel.AgentClasses import *
+from comp300.LearningModel.cmd_utils import learnRewardParser
 import sys
 import pickle
-from App.Utils import DemoObsAndVideo
+from comp300.App.Utils import DemoObsAndVideo
 
 
 #a method to find all the models in a given dir that are just numbers

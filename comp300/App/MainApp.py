@@ -1,11 +1,9 @@
 import tkinter
 from tkinter import Tk, Label, Button, Frame
-import sys
-sys.path.extend(['/home/patrick/PycharmProjects/comp300', '/home/patrick/PycharmProjects/comp300/comp300'])
 
-from App.CreateDemosApp import CreateDemosGUI
-from App.RewardLearningApp import SetupRewardLearning
-from App.TrainPolicyApp import SetupTrainPolicy
+from comp300.App.CreateDemosApp import CreateDemosGUI
+from comp300.App.RewardLearningApp import SetupRewardLearning
+from comp300.App.TrainPolicyApp import SetupTrainPolicy
 
 
 """ This is the top level gui class that will be used to open the other three steps"""

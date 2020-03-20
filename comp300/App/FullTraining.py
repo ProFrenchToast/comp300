@@ -1,5 +1,5 @@
 import tkinter
-from App.TrainPolicyApp import ActiveTrainPolicy
+from comp300.App.TrainPolicyApp import ActiveTrainPolicy
 import pickle
 
 if __name__ == '__main__':

@@ -1,10 +1,10 @@
 from baselines.common.vec_env import VecFrameStack
 from gym import register
 import sys
-from LearningModel.AgentClasses import *
+from comp300.LearningModel.AgentClasses import *
 from baselines.common.cmd_util import make_vec_env
 from statistics import stdev
-from LearningModel.cmd_utils import getAverageParser
+from comp300.LearningModel.cmd_utils import getAverageParser
 
 def getReward(agent, env, render=False):
     totalReward = 0

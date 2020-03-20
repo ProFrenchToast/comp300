@@ -1,13 +1,13 @@
 from tkinter import *
 from tkinter import filedialog
-from App.Utils import getAvailableEnvs, makeDemoFromAgent
+from comp300.App.Utils import getAvailableEnvs, makeDemoFromAgent
 from os import path, listdir
 from os.path import isfile, join
 import re
 import pickle
 
 from baselines.common.vec_env import VecFrameStack
-from LearningModel.AgentClasses import *
+from comp300.LearningModel.AgentClasses import *
 from baselines.common.cmd_util import make_vec_env
 import tensorflow as tf
 

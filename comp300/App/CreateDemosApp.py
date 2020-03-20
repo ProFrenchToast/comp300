@@ -2,7 +2,7 @@ import threading
 from tkinter import *
 from tkinter import filedialog
 from tkinter.ttk import Progressbar
-from App.Utils import getAvailableEnvs, makeDemoFromAgent
+from comp300.App.Utils import getAvailableEnvs, makeDemoFromAgent
 from os import path
 import subprocess
 import pickle

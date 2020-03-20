@@ -1,6 +1,6 @@
 from baselines.common.vec_env import VecFrameStack
 import cv2
-from LearningModel.AgentClasses import *
+from comp300.LearningModel.AgentClasses import *
 from baselines.common.cmd_util import make_vec_env
 
 def load_basePPO_and_Display():

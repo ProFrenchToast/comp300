@@ -1,7 +1,7 @@
 from tkinter import *
 import tkinter.scrolledtext as ScrolledText
 from tkinter import filedialog
-from App.Utils import *
+from comp300.App.Utils import *
 import PIL.Image, PIL.ImageTk
 from os import path
 import re

@@ -8,7 +8,7 @@ from baselines.common.policies import build_policy
 from baselines.ppo2.model import Model
 from baselines.common.cmd_util import make_vec_env
 from baselines.common.vec_env.vec_frame_stack import VecFrameStack
-from LearningModel.AgentClasses import *
+from comp300.LearningModel.AgentClasses import *
 
 def train_on_mnist():
     import matplotlib.pyplot as plt

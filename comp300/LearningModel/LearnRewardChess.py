@@ -1,6 +1,6 @@
-from LearningModel.AgentClasses import *
-from LearningModel.LearnReward import *
-from LearningModel.cmd_utils import chessLearnRewardParser
+from comp300.LearningModel.AgentClasses import *
+from comp300.LearningModel.LearnReward import *
+from comp300.LearningModel.cmd_utils import chessLearnRewardParser
 from gym import register
 import chess
 import chess.engine

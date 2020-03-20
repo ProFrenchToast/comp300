@@ -1,7 +1,7 @@
 import subprocess
 import math
 import sys
-from LearningModel.cmd_utils import checkpointParser
+from comp300.LearningModel.cmd_utils import checkpointParser
 
 if __name__ == '__main__':
     args_parser = checkpointParser()
