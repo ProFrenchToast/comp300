@@ -223,22 +223,5 @@ if __name__ == '__main__':
              entry_point='comp300.Chess.ChessWrapper:ChessEnv',
              max_episode_steps=1000)
 
-    envobj = ChessEnv()
-    reset = envobj.reset()
-
-    env = 'ChessSelf-v0'
-    alg = 'ppo2'
-    steps = '100000000' #100m
-    save_path = "/home/profrenchtoast_gmail_com//models/chess-reward-rl/chess_100M_ppo2"
     args = sys.argv
-    args.append("--alg={}".format(alg))
-    args.append("--env={}".format(env))
-    args.append("--num_timesteps={}".format(steps))
-    args.append("--save_path={}".format(save_path))
-    args.append("--log_path=/home/profrenchtoast_gmail_com/logs/chess-reward-rl")
-    args.append("--network=mlp")
-    args.append("--num_layers=5")
-    args.append("--custom_reward=pytorch")
-    args.append("--custom_reward_path=/home/profrenchtoast_gmail_com/models/chess-reward/fullTest6.params")
-
     run.main(args)
