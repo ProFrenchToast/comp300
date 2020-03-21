@@ -1,3 +1,5 @@
+import numpy as np
+import torch
 from baselines.common.vec_env import VecFrameStack
 from baselines.common.cmd_util import make_vec_env
 import torch.optim as optim
@@ -6,15 +8,31 @@ from gym import register
 from os import listdir
 from os.path import isfile, join
 import re
-from comp300.LearningModel.AgentClasses import *
+
+from torch import nn
+
+from comp300.LearningModel.AgentClasses import RewardNetwork, PPO2Agent
 from comp300.LearningModel.cmd_utils import learnRewardParser
 import sys
 import pickle
 from comp300.App.Utils import DemoObsAndVideo
 
 
-#a method to find all the models in a given dir that are just numbers
 def Find_all_Models(model_dir):
+    """
+    Finds all of the files in a directory that are just numbers if trained agents.
+
+    Parameters
+    ----------
+    model_dir : str
+        The path to the directory containing the demonstrators.
+
+    Returns
+    -------
+    [str]
+        An array of strings that are the filenames of each demonstrator found.
+
+    """
 
     checkpoints = []
     filesandDirs = listdir(model_dir)
@@ -29,8 +47,20 @@ def Find_all_Models(model_dir):
 
     return checkpoints
 
-#a method to find all the videos in a given dir that are just numbers
+
 def Find_all_Videos(video_dir):
+    """
+    Finds all .mp4 videos in a given directory that are just numbers ie video demonstrations.
+    Parameters
+    ----------
+    video_dir
+
+    Returns
+    -------
+    [str]
+        An array of strings that are the filenames of each demonstration found.
+
+    """
 
     checkpoints = []
     filesandDirs = listdir(video_dir)
@@ -45,8 +75,28 @@ def Find_all_Videos(video_dir):
 
     return checkpoints
 
-#given a dir and an environment plus an agent load every checkpointed model and run it for some demos
+
 def generate_demos_from_checkpoints(env, agent, model_dir, demosPerModel):
+    """
+    Generates demonstrations from a set of demonstators in a directory.
+
+    Parameters
+    ----------
+    env : gym.env
+        The env the demonstrators were trained for.
+    agent : comp300.LearningModel.AgentClasses.PPO2Agent
+        The agent object that the demonstrators will be loaded into.
+    model_dir : str
+        The path to the directory containing the demonstrators.
+    demosPerModel : int
+        The number of demonstrations to make per model.
+
+    Returns
+    -------
+    Tuple
+        A tuple containing an array of the demonstrations and an array of the reward for each demo.
+
+    """
     checkpoints = Find_all_Models(model_dir)
     print('found models: ' + str(checkpoints))
 
@@ -99,6 +149,30 @@ def generate_demos_from_checkpoints(env, agent, model_dir, demosPerModel):
 
 def create_labels(demonstrations, demo_rewards, num_full_trajectories, num_sub_trajectories,
                          min_snippet_length, max_snippet_length):
+    """
+    Creates the input pairs and labels from a set of demonstrations and rewards.
+
+    Parameters
+    ----------
+    demonstrations : numpy array
+        The set of demonstrations to be used to make the input pairs.
+    demo_rewards : [float]
+        The set of rewards used to make the labels for each pair of trajectories.
+    num_full_trajectories : int
+        The number of full trajectories in the dataset.
+    num_sub_trajectories : int
+        The number of sub-trajectories in the dataset.
+    min_snippet_length : int
+        The minimum length of the sub-trajectories.
+    max_snippet_length : int
+        The maximum length of the sub-trajectories.
+
+    Returns
+    -------
+    Tuple
+        A tuple containing and array of the input pairs of trajectories and an array of the class labels for the pairs.
+
+    """
     trajectory_observations = []
     trajectory_labels = []
     num_demos = len(demonstrations)
@@ -175,6 +249,32 @@ def create_labels(demonstrations, demo_rewards, num_full_trajectories, num_sub_t
 #split the demos and create a test and training labels
 def create_training_test_labels(ratio, demonstrations, demo_rewards, num_full_trajectories, num_sub_trajectories,
                          min_snippet_length, max_snippet_length):
+    """
+    Creates the test and training dataset given a set of input data and a ratio.
+
+    Parameters
+    ----------
+    ratio : float
+        The proportion of the demonstrations used to create the test dataset.
+    demonstrations : numpy array
+        The set of demonstrations used to make pairs of trajectories.
+    demo_rewards : [float]
+        The array of rewards for each demonstration.
+    num_full_trajectories : int
+        The number of full demonstrations across the test and training dataset.
+    num_sub_trajectories : int
+        The number of sub-demonstrations (snippets) across the test and training dataset.
+    min_snippet_length : int
+        The minimum length of the sub-trajectories.
+    max_snippet_length : int
+        The maximum length of the sub-trajectories.
+
+    Returns
+    -------
+    Tuple
+        A tuple containing the training data, training labels, test data and test labels.
+
+    """
     assert len(demonstrations) == len(demo_rewards)
     shufflePermutation = np.random.permutation(len(demonstrations))
     copyDemonstrations = demonstrations[shufflePermutation]
@@ -204,7 +304,30 @@ def create_training_test_labels(ratio, demonstrations, demo_rewards, num_full_tr
 
 
 
-def train_reward_network(rewardNetwork, optimiser, training_trajectories, training_labels, training_epochs, checkpoint_dir = ""):
+def train_reward_network(rewardNetwork, optimiser, training_trajectories, training_labels, training_epochs,
+                         checkpoint_dir = ""):
+    """
+    Train the reward network to correctly classify the training data.
+
+    Parameters
+    ----------
+    rewardNetwork : comp300.LearningModel.AgentClasses.RewardNetwork
+        The reward network to be trained.
+    optimiser : tourch.optim
+        The optimiser to use during gradient decent.
+    training_trajectories : numpy array
+        The array of pairs of trajectories as input data.
+    training_labels : [(1,0)]
+        The array of labels for the pairs of trajectories for which has higher reward.
+    training_epochs : int
+        The number of training epochs.
+    checkpoint_dir : str
+        The path to the directory to save the network after each epoch
+
+    Returns
+    -------
+
+    """
     #first check if gpu is available
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print("training using {}".format(device))
@@ -232,9 +355,7 @@ def train_reward_network(rewardNetwork, optimiser, training_trajectories, traini
             traj_j = torch.from_numpy(traj_j).float().to(device)
             labels = torch.from_numpy(labels).to(device)
 
-            #print("traj_I:{}, Traj_J: {}".format(traj_i.size(), traj_j.size()))
-
-            #zero out the gradient before applying to netwrok
+            #zero out the gradient before applying to network
             optimiser.zero_grad()
 
             #apply forwards on the trajectories then apply backwards to get the gradient from the loss tensor
@@ -256,12 +377,28 @@ def train_reward_network(rewardNetwork, optimiser, training_trajectories, traini
     print("finished training reward network")
 
 
-def calc_accuracy(reward_network, test_trajectories, testing_lables):
+def calc_accuracy(reward_network, test_trajectories, testing_labels):
+    """
+    Calculate the accuracy of the network on a test dataset.
+
+    Parameters
+    ----------
+    reward_network : comp300.LearningModel.AgentClasses.RewardNetwork.
+        The trained reward network to be tested.
+    test_trajectories : numpy array
+        The array of pairs of trajectories as test input.
+    testing_labels : [(1,0)]
+        The array of labels for each of the pairs of trajectories.
+
+    Returns
+    -------
+
+    """
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     num_correct = 0.
     with torch.no_grad():
         for i in range(len(test_trajectories)):
-            label = testing_lables[i]
+            label = testing_labels[i]
             traj_i, traj_j = test_trajectories[i]
             traj_i = np.array(traj_i)
             traj_j = np.array(traj_j)
@@ -276,6 +413,20 @@ def calc_accuracy(reward_network, test_trajectories, testing_lables):
     return num_correct / len(test_trajectories)
 
 def generate_demos_from_videos(video_dir):
+    """
+    Generates a set of demonstrations from a directory containing .mp4 videos as demonstrations.
+
+    Parameters
+    ----------
+    video_dir : str
+        The path to the directory containing the video demonstrations.
+
+    Returns
+    -------
+    Tuple
+        A tuple containing an array of the demonstrations and an array of the reward for each demo.
+
+    """
     videos = Find_all_Videos(video_dir)
     trajectories = []
     rewards = []

@@ -7,6 +7,24 @@ from statistics import stdev
 from comp300.LearningModel.cmd_utils import getAverageParser
 
 def getReward(agent, env, render=False):
+    """
+    Gets the reward from running the agent in the environment.
+
+    Parameters
+    ----------
+    agent : comp300.LearningModel.AgentClasses.PPO2Agent
+        The agent to be tested in the env.
+    env : gym.env
+        The env to test the agent in.
+    render : bool
+        A bool telling if the env should be rendered
+
+    Returns
+    -------
+    float
+        The total reward from the episode.
+
+    """
     totalReward = 0
 
     obs = env.reset()
@@ -25,6 +43,26 @@ def getReward(agent, env, render=False):
     return  totalReward
 
 def getAvgReward(agent, env, iterations, render):
+    """
+    Gets the average reward from an agent in the environment.
+
+    Parameters
+    ----------
+    agent : comp300.LearningModel.AgentClasses.PPO2Agent
+        The agent to be tested in the environemnt..
+    env : gym.env
+        The env the agent is tested in.
+    iterations : int
+        The number of episodes ran for testing.
+    render : bool
+        If the env should be rendered or not.
+
+    Returns
+    -------
+    Tuple
+        A tuple containg the mean, min, max and standard deviation of reward gained.
+
+    """
     rewards = []
 
     for i in range(iterations):

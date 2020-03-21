@@ -2,12 +2,32 @@ import argparse
 
 def arg_parser(desc):
     """
-    Create an empty parser that each method will build on.
+    Creates an empty parser that can then be added to.
+
+    Parameters
+    ----------
+    desc : str
+        The description of the program for the parser to use during help sections.
+
+    Returns
+    -------
+    ArgumentParser
+        The empty parser with the description.
+
     """
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, description=desc)
     return parser
 
 def checkpointParser():
+    """
+    Creates the parser for checkpoint training.
+
+    Returns
+    -------
+    ArugumentParser
+        the parser containing all the arguments.
+
+    """
     parser = arg_parser("Train an AI with standard reinforcement learning and save a copy of it after and given number "
                         "of training steps")
     parser.add_argument("--env", help="The environment ID you wish to train", type=str, default="BreakoutNoFrameSkip-v4")
@@ -24,6 +44,15 @@ def checkpointParser():
     return parser
 
 def getAverageParser():
+    """
+    Creates the parser for getting average reward of an agent.
+
+    Returns
+    -------
+    ArugumentParser
+        the parser containing all the arguments.
+
+    """
     parser = arg_parser("Test the effectiveness of a trained agent in a given environment and display the results")
     parser.add_argument("--env", help="The environment ID the agent was trained for", type=str, default="BreakoutNoFrameskip-4")
     parser.add_argument("--env_type", help="The type of environment ie atari, mujoco ect", type=str, default="atari",
@@ -36,6 +65,15 @@ def getAverageParser():
     return parser
 
 def learnRewardParser():
+    """
+    Creates the parser for learning the reward.
+
+    Returns
+    -------
+    ArugumentParser
+        the parser containing all the arguments.
+
+    """
     parser = arg_parser("Learn to approximate the reward function of a set of demonstrations\n"
                         "This can be done in 1 of 3 ways:\n"
                         "  1. specify an environment to use and a directory that contains trained agents and use them\n"
@@ -76,6 +114,15 @@ def learnRewardParser():
     return parser
 
 def chessLearnRewardParser():
+    """
+    Creates the parser for the chess learning reward.
+
+    Returns
+    -------
+    ArugumentParser
+        the parser containing all the arguments.
+
+    """
     parser = arg_parser("Learn to approximate the reward function of chess. This files does this by using expert\n"
                         "demonstrations from stockfish. To approximate the reward function using pre-trained agent\n"
                         "try using the main LearnReward.py.\n")
@@ -99,6 +146,15 @@ def chessLearnRewardParser():
     return parser
 
 def recordAgentParser():
+    """
+    Creates the parser for recording a trained agent.
+
+    Returns
+    -------
+    ArugumentParser
+        the parser containing all the arguments.
+
+    """
     parser = arg_parser("Record a video of a trained agent performing a task given the agent file and environment.")
 
     parser.add_argument("--model_path", help="The path to the trained agent that will be recorded", type=str,

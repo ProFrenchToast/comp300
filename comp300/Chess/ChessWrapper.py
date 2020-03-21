@@ -296,7 +296,7 @@ class ChessEnv(Env):
         Returns
         -------
         Dict
-            A dictionary containing the obs, the board state encoded as a 8x8 array with ech piece given a numeber by
+            A dictionary containing the obs, the board state encoded as a 8x8 array with ech piece given a number by
             type, and the side, and int encoding which side the player is on.
         """
         #get the array of the current board state

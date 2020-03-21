@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as functional
@@ -7,8 +6,20 @@ from baselines.ppo2.model import Model
 from gym.envs.atari import atari_env
 
 class RewardNetwork (nn.Module):
-    #setup the nn by initialising the layers plus other variables
+    """The neural network used to approximate the reward function of demonstrations."""
     def __init__(self, lossFunction, env_type, env=atari_env.AtariEnv()):
+        """
+        The constructor that initialises the neural network using the environment.
+
+        Parameters
+        ----------
+        lossFunction : torch.nn.loss
+            The loss function to be used during the training of the network.
+        env_type : str
+            The type of environment the network needs to approximate.
+        env : gym.env
+            The actual environment the network is interacting with. only needed when is it not a visual env like atari.
+        """
         super().__init__()
         #check to see if this is a visual domain that convolutions would make sense for
         self.is_visual = env_type == "atari"
@@ -23,7 +34,6 @@ class RewardNetwork (nn.Module):
             self.fc1 = nn.Linear(784, 64)
             self.fc2 = nn.Linear(64, 1)
         else:
-            #todo: make the size and network topology change based on the shapes of the obs
             #first calculate the full size of the observations
             self.obs_size = 0
             for i in range(len(env.observation_space.shape)):
@@ -36,8 +46,22 @@ class RewardNetwork (nn.Module):
 
         self.lossFunction = lossFunction
 
-    #use the nn to predict the reward for a given trajectory
+
     def predict_reward(self, trajectory):
+        """
+        Predict the reward of the trajectory by applying the network to each frame stack.
+
+        Parameters
+        ----------
+        trajectory : tensor
+            The trajectory which is just an array of observations directly from the env.
+
+        Returns
+        -------
+        Tuple
+            A tuple of floats containing the reward, which is the sum of the reward in each observation, and the
+            abs_reward, which is the sum of absolute rewards in each observation.
+        """
         if self.is_visual:
             #first change the trajectpory into the NCHW format
             #number of samples * channels * height * width
@@ -65,6 +89,23 @@ class RewardNetwork (nn.Module):
 
     #use the nn on two trajectories to find the better one
     def forward(self, trajectory_i, trajectory_j):
+        """
+        Classify which of the two trajectories has higher reward.
+
+        Parameters
+        ----------
+        trajectory_i : tensor
+            A tensor containing the first trajectory corresponding to class 0.
+        trajectory_j : tensor
+            A tensor containing the second trajectory corresponding to class 1.
+
+        Returns
+        -------
+        Tuple
+            A tuple containing a tensor, which contains the predicted rewards of each trajectory used as the
+            classification values, and the sum of absolute rewards of both trajectories.
+
+        """
         reward_i, abs_reward_i = self.predict_reward(trajectory_i)
         reward_j, abs_reward_j = self.predict_reward(trajectory_j)
         #now use the predicted rewards for each trajectory as a probability distribution for that traj being better
@@ -72,8 +113,9 @@ class RewardNetwork (nn.Module):
         return torch.cat((reward_i.unsqueeze(0), reward_j.unsqueeze(0)), 0), (abs_reward_i + abs_reward_j)
 
 
-#a generic class to hold all types of agents
+
 class Agent (object):
+    """The generic class to hold all types of agents"""
     def __init__(self, env):
         return
 
@@ -81,21 +123,33 @@ class Agent (object):
         return
 
 class RandomAgent(Agent):
-    #a simple agent that just takes a random action
+    """a simple agent that just takes a random action."""
     def __init__(self, env):
         self.action_space = env.action_space
 
     def act(self, observation, reward, done):
         return self.action_space.sample()
 
-#a base class for ppo2 agents
-#currently uses random agents as a stub
 class PPO2Agent(Agent):
+    """The agent used to load all agents trained from baselines"""
     def __init__(self, env, env_type, stochastic):
+        """
+        The constructor that uses the environment to constuct the network build policy and then build the agent.
+
+        Parameters
+        ----------
+        env : gym.env
+            The env the agent needs to interact with.
+        env_type : str
+            The type of env.
+        stochastic : bool
+            A bool describing if the behavior of the agent is stochastic (random in simple terms).
+        """
         ob_space = env.observation_space
         ac_space = env.action_space
         self.stochastic = stochastic
 
+        #now find the correct build policy
         if env_type == 'atari':
             policy = build_policy(env, 'cnn')
         elif env_type == "ChessWrapper":
@@ -103,15 +157,45 @@ class PPO2Agent(Agent):
         else:
             policy = build_policy(env, 'mlp')
 
+        #construct the agent model using the build model
         make_model = lambda: Model(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=1, nbatch_train=1,
                                    nsteps=1, ent_coef=0., vf_coef=0.,
                                    max_grad_norm=0.)
         self.model = make_model()
 
     def load(self, path):
+        """
+        Loads a set of weights from a file path.
+
+        Parameters
+        ----------
+        path : str
+            The path to the agent file.
+
+        Returns
+        -------
+
+        """
         self.model.load(path)
 
     def act(self, observation, reward, done):
+        """
+        Given the current observations calculate the correct action.
+
+        Parameters
+        ----------
+        observation : numpy array
+            The current observations as a subset of the observation space.
+        reward : float
+            The reward given the previous timestep.
+        done : bool
+            A bool telling if the current episode is finished.
+
+        Returns
+        -------
+        Action
+            return the best action the agent can find from the action space.
+        """
         if self.stochastic:
             a, v, state, neglogp = self.model.step(observation)
         else:
