@@ -1,12 +1,36 @@
-from comp300.LearningModel.AgentClasses import *
-from comp300.LearningModel.LearnReward import *
-from comp300.LearningModel.cmd_utils import chessLearnRewardParser
-from gym import register
+import random
+import sys
+
 import chess
 import chess.engine
-import random
+import torch
+from baselines.common.cmd_util import make_vec_env
+from gym import register
+from torch import nn, optim
+
+from comp300.LearningModel.AgentClasses import RewardNetwork
+from comp300.LearningModel.LearnReward import create_training_test_labels, train_reward_network, calc_accuracy
+from comp300.LearningModel.cmd_utils import chessLearnRewardParser
+
 
 def generate_chess_demos(env, num_demos):
+    """
+    Generate a number of demonstrations using stockfish.
+
+    Parameters
+    ----------
+    env : ChessEnv
+        The chess env that is used for creating the demonstrations.
+    num_demos : int
+        The number of demonstrations to be created.
+
+    Returns
+    -------
+    Tuple
+        A tuple containing the demonstrations, as an array of observations, and the rewards, an array of int showing
+        the reward for each demonstration.
+
+    """
     trajectories = []
     rewards = []
     engine = chess.engine.SimpleEngine.popen_uci('/usr/games/stockfish')

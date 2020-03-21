@@ -1,25 +1,37 @@
-from gym import Env, logger
-from gym.spaces import Discrete, MultiDiscrete, Box, Dict
-from gym.utils import colorize, seeding
-import numpy as np
+import random
+import tempfile
+
 import chess
 import chess.engine
-import random
 import chess.svg
-from cairosvg import svg2png
 import cv2
-import tempfile
+import numpy as np
+from cairosvg import svg2png
+from gym import Env
+from gym.spaces import Discrete, Box, Dict
 
 WHITEWIN = '1-0'
 BLACKWIN = '0-1'
 DRAW = '1/2-1/2'
 
 class ChessEnv(Env):
+    """The chess env that defines the interaction between gym and pychess."""
 
     metadata = {'render.modes': ['human', 'asci', 'rgb_array']}
 
     def __init__(self, opponent = "stockfish", startingSide = None, limit = chess.engine.Limit(depth=1)):
+        """
+        The constructor that initialises the chess board and the opponent engine.
 
+        Parameters
+        ----------
+        opponent : str
+            A sting describing the opponent to use (either 'stockfish' or 'random').
+        startingSide : str
+            The side to start on either 'white' or 'black'. if nothing given default is random.
+        limit : chess.engine.Limit
+            The limit on the opponent when searching for moves.
+        """
         #set up the board and the opponent
         self.board = chess.Board()
         self.opponent = opponent
@@ -28,16 +40,16 @@ class ChessEnv(Env):
             self.opponent_engine.configure({"Skill Level": 5})
         self.limit = limit
 
-        if startingSide == None:
-            self.side = random.choice([0,1])
-        elif startingSide == "white":
+        if startingSide == "white":
             self.side = 0
-        else:
+        elif startingSide == "black":
             self.side = 1
+        else:
+            self.side = random.choice([0,1])
 
         #set up the action and observation space also set up reward range
         #the observation space is just a grid with 8x8 squares of intergers. 0 = empty, n = white piece, -n = black piece
-        #the observation space also needs an input for what side the agent is
+        #the observation space also has an input for what side the agent is
         self.observation_space = Dict(dict(
             obs = Box(-np.inf, np.inf, shape=(8,8), dtype=np.int64),
             side = Discrete(2)))
@@ -50,7 +62,13 @@ class ChessEnv(Env):
         self.legal_moves = 0
 
     def reset(self):
-        #reset the board to the start
+        """
+        Reset the board to the start and pick a new side
+
+        Returns
+        -------
+
+        """
         self.board.reset()
         self.done = False
         self.illegal_moves = 0
@@ -63,6 +81,14 @@ class ChessEnv(Env):
         return self.getObs()
 
     def getOpponentMove(self):
+        """
+        Get the move from the opponent engine.
+
+        Returns
+        -------
+        Move
+            the move chosen by the opponent.
+        """
         if self.opponent == "stockfish":
             result = self.opponent_engine.play(self.board, self.limit)
             opponentMove = result.move
@@ -72,6 +98,19 @@ class ChessEnv(Env):
         return opponentMove
 
     def find_piece(self, piece_number):
+        """
+        Finds the board positions of the piece.
+
+        Parameters
+        ----------
+        piece_number : int
+            The index of the piece from the start of the board.
+
+        Returns
+        -------
+        int
+            The board index of the piece.
+        """
         piece_locations = []
         piece_map = self.board.piece_map()
 
@@ -88,14 +127,29 @@ class ChessEnv(Env):
             return piece_locations[piece_number]
 
     def step(self, action):
-        #apply the action given to the game system but it needs to be converted to a string first
-        #apply the given move
-        #piece_position = self.find_piece(action[0])
-        #EquivilentMove = chess.Move(piece_position, int(action[1]))
+        """
+        Take a the action on the board.
+
+        Parameters
+        ----------
+        action : int
+            The index of the move it wants to make in possible moves.
+
+        Returns
+        -------
+        obs
+            The dictionary of observations from the board.
+        reward
+            The reward from this time step.
+        done
+            A boolean of if the game is done yet.
+        info
+            A dictionary containing debug info about the env.
+        """
+        #generate all moves
         legalMoves = list(self.board.generate_legal_moves())
 
 
-        #if self.board.is_legal(EquivilentMove):
         if action < len(legalMoves):
             EquivilentMove = legalMoves[action]
             self.legal_moves += 1
@@ -135,6 +189,15 @@ class ChessEnv(Env):
             return obs, reward, self.done, {}
 
     def getResults(self):
+        """
+        Calculates the results of the game if it is finished.
+
+        Returns
+        -------
+        results
+            A tuple containing the (reward for white, reward for black).
+
+        """
         resultStr = self.board.result(claim_draw=True)
         if resultStr == WHITEWIN:
             result = (100, -100)
@@ -149,6 +212,21 @@ class ChessEnv(Env):
         return result
 
     def render(self, mode='human'):
+        """
+        Renders the board in the given mode.
+
+        Parameters
+        ----------
+        mode : str
+            The type of rendering that is needed. human = render a cv2 window, asci = print and return and asci
+            representation of the board, rgb_array = render the board and return a 3d array of values.
+
+        Returns
+        -------
+        board
+            Either an rgb array of the board state or a string reprsentation.
+
+        """
         if mode == 'human':
             #render the board in a human readable form or if needed in a chess form
 
@@ -167,6 +245,7 @@ class ChessEnv(Env):
 
         elif mode == 'asci':
             print(self.board)
+            return str(self.board)
 
         elif mode == 'rgb_array':
             svgInfo = chess.svg.board(board=self.board)
@@ -183,15 +262,43 @@ class ChessEnv(Env):
 
 
     def close(self):
+        """
+        Closes the environment and clears the opponent engine
+        Returns
+        -------
+
+        """
         #close the dependencies such as the game system and opponent
         self.board.clear()
         #also destroy opponent
+        if self.opponent == "stockfish":
+            self.opponent_engine.quit()
 
     def seed(self, seed=None):
-        #seed the starting position (i guess this means make the opponet act differently or something not sure)
-        return
+        """
+        Seeds the randomness in the env.
+
+        Parameters
+        ----------
+        seed : int
+            The seed for randomness generation.
+
+        Returns
+        -------
+
+        """
+        random.seed(seed)
 
     def getObs(self):
+        """
+        Calculates the observations from the current board position.
+
+        Returns
+        -------
+        Dict
+            A dictionary containing the obs, the board state encoded as a 8x8 array with ech piece given a numeber by
+            type, and the side, and int encoding which side the player is on.
+        """
         #get the array of the current board state
         boardState = np.zeros((8,8),dtype=np.int64)
         pieceMap = self.board.piece_map()
