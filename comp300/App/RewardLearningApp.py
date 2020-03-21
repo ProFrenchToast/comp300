@@ -7,9 +7,17 @@ from os import path
 import re
 import threading
 
-"""This is the gui to set up the parameters for the reward learning """
 class SetupRewardLearning:
+    """This is the gui to set up the parameters for the reward learning """
     def __init__(self, master):
+        """
+        The constructor that initialises the widgets in the window.
+
+        Parameters
+        ----------
+        master : TK
+            The window that contains the gui.
+        """
         self.master = master
         master.title("Learning from demonstrations")
 
@@ -26,8 +34,6 @@ class SetupRewardLearning:
         self.demo_frame.pack(side=RIGHT, fill=BOTH, expand=True)
 
         #first make the parameter frame becuase it is the simplest
-
-        #todo: add the option of different network sizes
 
         # set up the number of training epochs
         self.epoch_label = Label(self.parameter_frame, text="Number of training epochs: ", highlightthickness=5)
@@ -108,17 +114,25 @@ class SetupRewardLearning:
         self.clear_button.pack(side=LEFT)
 
     def makeButtons(self):
+        """
+        Remakes the set of play buttons to match the current set of demos.
+
+        Returns
+        -------
+
+        """
         #first remove any existing buttons
         for i in reversed(range(len(self.playButton_array))):
             self.playButton_array[i].pack_forget()
             del self.playButton_array[i]
 
+        #then get the set of demonstrations
         listOfDemos = self.demo_variable.get()
         demosStr = []
         for demo in self.demos:
             demosStr.append(str(demo))
         #then make a button for each demo
-        self.pixel = PhotoImage(width=1, height=1)
+        self.pixel = PhotoImage(width=1, height=1)  #needed to be able to resize the buttons to exact pixel values
         for i in range(len(self.demos)):
             filename = listOfDemos[i]
             indexInDemos = demosStr.index(filename)
@@ -130,11 +144,27 @@ class SetupRewardLearning:
 
 
     def setSaveDir(self):
+        """
+        Lets the user set the save directory.
+
+        Opens a select directory dialog and saves the selected directory & updates the label.
+
+        Returns
+        -------
+
+        """
         self.saveDir_variable = filedialog.asksaveasfilename(initialdir="~/", title="Where to save learned reward",
                                                              initialfile="learnedReward")
         self.saveDirDisplay_label.config(text="Save Dir: {}".format(self.saveDir_variable))
 
     def tryStart(self):
+        """
+        Reads all of the users input and checks that each input is valid.
+
+        Returns
+        -------
+
+        """
         valid = True
 
         epochStr = self.epoch_input.get()
@@ -177,35 +207,59 @@ class SetupRewardLearning:
 
         if valid:
             print("trying to start training")
-            #self.start_button.config(state=DISABLED)
             #now make a new window
             self.activeWindow = tkinter.Toplevel(self.master)
             ActiveRewardLearning(self.activeWindow, orderedDemos, epochs, min_snippet, max_snippet,
                                  training_size, self.saveDir_variable)
 
     def emptyAndClose(self):
+        """
+        Clears the current set of demos and closes the window.
+
+        Returns
+        -------
+
+        """
         for demo in self.demos:
             del demo
         self.master.destroy()
 
     def addDemo(self):
-        print("Adding a new demo")
+        """
+        Lets the user add a new demonstration to the current set.
+
+        Opens a select file dialog and lets the user select from .mp4 or .obs files. the selected file is then
+        used to create a demonstration and is added ot the set of current demonstrations.
+
+        Returns
+        -------
+
+        """
         newDemoPath = filedialog.askopenfilename(initialdir="~/", title="Select the demo to open",
                                                  filetypes=(("mp4 video files","*.mp4"),
                                                             ("raw observation files","*.obs"),
                                                             ("all files","*.*")))
 
-        #first check file exisits and ends in .mp4 or .obs
+        #first check file exisits
         if not path.exists(newDemoPath):
             print("Error that file does not exist")
             return
         else:
+            #create a demo from the file and save it
             newDemo = DemoObsAndVideo(newDemoPath)
             self.demos.append(newDemo)
             self.demo_variable.set(self.demos)
+            #remake the buttons to reflect the new addition
             self.makeButtons()
 
     def clearDemos(self):
+        """
+        Clears all of the current demos and updates the buttons.
+
+        Returns
+        -------
+
+        """
         print("clearing all demos")
         for demo in self.demos:
             del demo
@@ -215,6 +269,18 @@ class SetupRewardLearning:
         self.makeButtons()
 
     def loadConfig(self, filename):
+        """
+        Load a pickled dictionary containing preset values for the user input.
+
+        Parameters
+        ----------
+        filename : str
+            The full path to the configuration file.
+
+        Returns
+        -------
+
+        """
         try:
             config = pickle.load(open(filename, "rb"))
 
@@ -249,7 +315,28 @@ class SetupRewardLearning:
 
 
 class ActiveRewardLearning:
+    """This is the Gui that actually runs the reward learning and trains the reward network."""
     def __init__(self, master, demos, trainingEpochs, min_snippet_size, max_snippet_size, no_snippets, save_dir):
+        """
+        The constructor that initialises the widgets and then starts the training thread.
+
+        Parameters
+        ----------
+        master : TK
+            The window to contain the gui.
+        demos : [DemoObsAndVideo]
+            An array of demonstrations that are ordered with the highest ranked first.
+        trainingEpochs : int
+            The number of epochs to train for.
+        min_snippet_size : int
+            The minimum size of the snippets from demonstrations.
+        max_snippet_size : int
+            The maximum size of the snippets from demonstrations.
+        no_snippets : int
+            The number of snippets to make to create the dataset.
+        save_dir : str
+            The path to save the trained network to.
+        """
         self.master = master
         master.title("Learning from demonstrations")
 
@@ -327,13 +414,22 @@ class ActiveRewardLearning:
         self.training_thread = threading.Thread(target=train_network, args=(self.training_trajectories, self.training_labels,
                                                                 self.training_epochs, self.save_dir, self))
         self.training_thread.start()
-        #train_network(self.training_trajectories, self.training_labels, self.training_epochs, self.save_dir, self)
 
         # add the update method to the main window loop
         self.delay = 34
         self.update()
 
     def update(self):
+        """
+        Change the current frame to the next one for each video.
+
+        Called every 34ms and changes the current frame displayed and clears all layers of the canvas if no
+        new frame is available.
+
+        Returns
+        -------
+
+        """
         #first update video one
         ret, frame = self.video1.get_frame()
 
@@ -342,7 +438,7 @@ class ActiveRewardLearning:
             self.video_canvas1.create_image(0, 0, image=self.photo1, anchor=tkinter.NW)
         else:
             self.video_canvas1.delete("all")
-            #self.video1.reset()
+
 
         #now update the second video
         ret, frame = self.video2.get_frame()
@@ -352,14 +448,22 @@ class ActiveRewardLearning:
             self.video_canvas2.create_image(0, 0, image=self.photo2, anchor=tkinter.NW)
         else:
             self.video_canvas2.delete("all")
-            #self.video2.reset()
 
+        #check if the training is finished
         if not self.training_thread.isAlive():
             self.finish_button.config(state=ACTIVE)
 
+        #rerun this after self.delay ms
         self.master.after(self.delay, self.update)
 
     def __del__(self):
+        """
+        Safely clears both videos and then closes the current window.
+
+        Returns
+        -------
+
+        """
         self.video1.__del__()
         self.video2.__del__()
         self.master.destroy()
@@ -369,7 +473,3 @@ if __name__ == '__main__':
     rootWindow = Tk()
     Gui = SetupRewardLearning(rootWindow)
     rootWindow.mainloop()
-
-    #secondRoot = Tk()
-    #Gui = ActiveRewardLearning(secondRoot)
-    #secondRoot.mainloop()

@@ -1,20 +1,25 @@
-import tkinter
-from tkinter import ttk
-import cv2
-import gym
-import re
-import tensorflow as tf
-import numpy as np
-import torch
-import pickle
-import atari_py
 import copy
 import logging
+import pickle
+import re
 import time
-import sys
+import tkinter
 
+import cv2
+import gym
+import numpy as np
+import tensorflow as tf
+import torch
+import torch.nn as nn
+import torch.optim as optim
 from baselines.common.cmd_util import make_vec_env
 from baselines.common.vec_env.vec_frame_stack import VecFrameStack
+from baselines.common.vec_env.vec_video_recorder import VecVideoRecorder
+
+from comp300.LearningModel.AgentClasses import PPO2Agent as realAgent
+from comp300.LearningModel.AgentClasses import RewardNetwork
+from comp300.LearningModel.LearnReward import create_labels
+
 
 #This code was created by Moshe in resopnse to the question https://stackoverflow.com/questions/14459993/tkinter-listbox-drag-and-drop-with-python
 class DragDropListbox(tkinter.Listbox):
@@ -153,7 +158,18 @@ class MyVideoCapture:
              self.vid.release()
 
 class DemoObsAndVideo:
+    """A class that converts between observations and videos."""
     def __init__(self, fileName="", obs=None):
+        """
+        The constructor that take a file or obs array and creates the video or array for it.
+
+        Parameters
+        ----------
+        fileName : str
+            The path to a .mp4 or .obs file that contains a demonstration.
+        obs : NumPy array
+            A numpy array that contains the observations from a demonstration.
+        """
         self.fileName = fileName
         if re.search(".mp4$", fileName):
             print("converting mp4 observations from {}".format(fileName))
@@ -174,6 +190,13 @@ class DemoObsAndVideo:
             raise ValueError("Error need to provide either a file or array to load")
 
     def getObsFrommp4(videoPath):
+        """
+        Converts a .mp4 file to and numpy array of the observations for a demonstration.
+
+        Returns
+        -------
+        An array of observations each frame.
+        """
         #open the video file
         video = cv2.VideoCapture(videoPath)
         frames = []
@@ -199,20 +222,24 @@ class DemoObsAndVideo:
         frames = np.array(frames)
         frame_stack = 4
         obs = []
-        stacked_obs = np.zeros((1, 84, 84, 4), dtype=np.uint8)
+        stacked_obs = np.zeros((1, 84, 84, frame_stack), dtype=np.uint8)
 
         for currentFrame in range(len(frames)):
             stacked_obs[..., -frames[currentFrame].shape[-1]:] = frames[currentFrame]
             obs.append(copy.deepcopy(stacked_obs))
 
-        #fuck trying to convert the mp4 array to the observations because the pixels arent aligned
-        #obs_path = videoPath.split(".")[0] + ".obs"
-        #obs = pickle.load(obs_path)
-
-        #note the conversion is not totally accurate because the observations are not encoded into the mp4 file correctly
+        #note the conversion is not totally accurate because the observations are not encoded into the mp4 file
+        #perfectly by the emulator
         return np.array(obs)
 
     def play(self):
+        """
+        Plays a video on the demonstration in a OpenCV window.
+
+        Returns
+        -------
+
+        """
         ret = True
         i = 0
         cv2.namedWindow(self.fileName, cv2.WINDOW_AUTOSIZE)
@@ -231,9 +258,23 @@ class DemoObsAndVideo:
         return
 
     def reset(self):
+        """
+        Resets the video back to the start.
+
+        Returns
+        -------
+
+        """
         self.video.reset()
 
     def get_frame(self):
+        """
+        Gets the next frame from the video.
+
+        Returns
+        -------
+        A tuple of if the video is finished & rgb array of the next frame.
+        """
         return self.video.get_frame()
 
     def __str__(self):
@@ -243,7 +284,16 @@ class DemoObsAndVideo:
         del self.video
 
 class Array2Video:
+    """A class used to convert an array of observations to a video."""
     def __init__(self, obs):
+        """
+        The constructor that converts the observations to an array of frames.
+
+        Parameters
+        ----------
+        obs : NumPy array
+            The array of stacked observations that needs to be converted to a video.
+        """
         self.frames = []
         for i in range(len(obs)):
             #get the current frame
@@ -259,6 +309,12 @@ class Array2Video:
         self.ret = True
 
     def get_frame(self):
+        """
+        Gets the next frame of the video.
+        Returns
+        -------
+        A tuple of if the video is finished & rgb array of the next frame.
+        """
         if self.currentIndex >= len(self.frames):
             return False, None
         else:
@@ -267,31 +323,63 @@ class Array2Video:
             return True, current_frame
 
     def reset(self):
+        """
+        Resets the video back to the start.
+
+        Returns
+        -------
+
+        """
         self.currentIndex = 0
         self.ret = True
 
     def __del__(self):
+        #this video holder does not need any special garbage collection.
         pass
 
 
 def getAvailableEnvs():
+    """
+    Gets an array of environment ids.
+
+    Returns
+    -------
+    An array of all the available environment names for the GUI.
+    """
     allEnvs = gym.envs.registry.all()
     env_options = []
     for env in allEnvs:
-        env_type = env.entry_point.split(':')[0].split('.')[-1]  # no idea??
+        env_type = env.entry_point.split(':')[0].split('.')[-1]  #select the last part of the entry point ie the name
         if env_type == "atari" and not re.search("ram", env.id) and not re.search("Deterministic", env.id) \
                 and not re.search("v0", env.id):
             env_options.append(env.id)
     return env_options
 
 def makeDemoFromAgent(agentPath, envName, agent=None):
+    """
+    Create a .mp4 and .obs demonstration from a given agent.
 
-    from baselines.common.vec_env.vec_video_recorder import VecVideoRecorder
+    Parameters
+    ----------
+    agentPath : str
+        The path to the agent file.
+    envName : str
+        The environment id  the agent was trained for.
+    agent : PPO2Agent
+        An existing agent object can be used to reduce tf graphs used.
+
+    Returns
+    -------
+    A PPO2Agent that can be used for further demonstrations.
+
+    """
+
     model_path = agentPath
     env_id = envName
     env_type = 'atari'
     record = True
 
+    #create the environment
     env = make_vec_env(env_id, env_type, 1, 0,
                        wrapper_kwargs={
                            'clip_rewards': False,
@@ -302,17 +390,14 @@ def makeDemoFromAgent(agentPath, envName, agent=None):
 
     env = VecFrameStack(env, 4)
 
-    from LearningModel.AgentClasses import PPO2Agent as realAgent
+    #next create a new agent if needed and load the weights
     if agent == None:
         agent = realAgent(env, env_type, True)
     agent.load(model_path)
 
+    #run for 1 episode
     for i_episode in range(1):
         observation = env.reset()
-        #image = env.render(mode="rgb_array")
-        #fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        #fps = 60.0
-        #writter = cv2.VideoWriter("{}.avi".format(agentPath), fourcc, fps, (image.shape[0], image.shape[1]))
         obsArray = [observation]
         reward = 0
         totalReward = 0
@@ -320,18 +405,18 @@ def makeDemoFromAgent(agentPath, envName, agent=None):
         t = 0
         while True:
             t = t + 1
-            #writter.write(env.render(mode="rgb_array")[:, :, 0])
             action = agent.act(observation, reward, done)
             observation, reward, done, info = env.step(action)
             obsArray.append(observation)
             totalReward += reward
             if done:
-                #print("Episode finished after {} timesteps with total reward:{}".format(t + 1, totalReward))
                 break
+
+    #clear up the environments and graph.
     env.close()
     env.venv.close()
     tf.keras.backend.clear_session()
-    #writter.release()
+    #save the .obs file
     pickle.dump(obsArray, open(agentPath+".obs", "wb"))
     return agent
     #the agent needs to be returned so that the graph can reuse it
@@ -341,11 +426,34 @@ def makeDemoFromAgent(agentPath, envName, agent=None):
 #training methods remade for ability to display results in real time
 def create_training_labels(demonstrations, demonstration_rewards, num_full_trajectories, num_sub_trajectories,
                            min_snippet_length, max_snippet_length):
+    """
+    An altered version of the create training labels that does not make any test data
+
+    Parameters
+    ----------
+    demonstrations : numpy array
+        The set of demonstrations to be split up.
+    demonstration_rewards : [float]
+        The array of rewards for each demonstrations.
+    num_full_trajectories : int
+        The number of full trajectories to include in the training data.
+    num_sub_trajectories : int
+        The number of sub-trajectories (snippets) to include in the training data.
+    min_snippet_length : int
+        The minimum snippet length.
+    max_snippet_length : int
+        The maximum snippet length.
+
+    Returns
+    -------
+    A tuple containing an array of pairs of trajectories & an array containing the class labels for the pairs.
+
+    """
     shufflePermutation = np.random.permutation(len(demonstrations))
     copyDemonstrations = demonstrations[shufflePermutation]
     copyDemo_rewards = demonstration_rewards[shufflePermutation]
 
-    from LearningModel.LearnReward import create_labels
+
     training_trajectories, training_labels = create_labels(copyDemonstrations, copyDemo_rewards,
                                                                     num_full_trajectories, num_sub_trajectories
                                                                     ,min_snippet_length, max_snippet_length)
@@ -353,10 +461,26 @@ def create_training_labels(demonstrations, demonstration_rewards, num_full_traje
     return training_trajectories, training_labels
 
 def train_network(training_obs, training_labels, training_epochs, save_dir, parent):
-    import torch.optim as optim
-    import torch.nn as nn
-    from LearningModel.AgentClasses import RewardNetwork
+    """
+    Trains the reward network with the given parameters and saves the result.
 
+    Parameters
+    ----------
+    training_obs : numpy array
+        The array of pairs of trajectories that is used as the input data.
+    training_labels : [(1,0)]
+        The array containing the correct class label for the input data.
+    training_epochs : int
+        The number of training epochs.
+    save_dir : str
+        The path to save the trained network to.
+    parent : ActiveRewardLearning
+        The gui window that is running the training.
+
+    Returns
+    -------
+
+    """
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     loss = nn.CrossEntropyLoss()
     learning_rate = 0.00005
@@ -370,6 +494,33 @@ def train_network(training_obs, training_labels, training_epochs, save_dir, pare
 
 def train_reward_network_visual(rewardNetwork, optimiser, training_trajectories, training_labels, training_epochs,
                                 parent, checkpoint_dir = ""):
+    """
+    Trains the given network to approximate the training labels and render the result to the parent.
+
+    This method performs the same role as comp300.LearningModel.LearnReward.train_reward_network but this is altered
+    to display the current trajectories to the gui thread in real time.
+
+    Parameters
+    ----------
+    rewardNetwork : RewardNetwork
+        The reward network that is to be trained.
+    optimiser : torch.optim
+        The optimiser to be used during gradient decent.
+    training_trajectories : numpy array
+        The array of pairs of trajectories used as input data.
+    training_labels : [(1,0)]
+        The array of class labels for the training data.
+    training_epochs : int
+        The number of training epochs.
+    parent : ActiveRewardLearning
+        The gui window that is running the training.
+    checkpoint_dir : str
+        The directory to save the checkpoints of the network after each epoch.
+
+    Returns
+    -------
+
+    """
     # first check if gpu is available
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     logging.info("training using {}".format(device))
@@ -397,7 +548,6 @@ def train_reward_network_visual(rewardNetwork, optimiser, training_trajectories,
             traj_j = torch.from_numpy(traj_j).float().to(device)
             labels = torch.from_numpy(labels).to(device)
 
-            # print("traj_I:{}, Traj_J: {}".format(traj_i.size(), traj_j.size()))
             try:
                 if shuffled_labels[i] == 0:
                     video1 = DemoObsAndVideo(obs=shuffled_trajectories[i][0])

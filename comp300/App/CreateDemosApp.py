@@ -8,9 +8,21 @@ import subprocess
 import pickle
 
 
-"""This is the gui for creating demonstrations and demonstrators for the learning"""
+
 class CreateDemosGUI:
+    """
+    This is the gui window for creating demonstrations and demonstrators that can be used for learning the reward
+    function.
+    """
     def __init__(self, master):
+        """
+        The constructor method that initialises all of the widgets for the window.
+
+        Parameters
+        ----------
+        master : TK
+            The master window to render this window inside of usually TK()
+        """
         self.master = master
         master.title("Creating demonstrations")
 
@@ -20,7 +32,6 @@ class CreateDemosGUI:
 
         self.env_variable = StringVar(master)
         self.env_variable.set('')
-        # not sure if this is needed: self.env_variable.trace()
         self.env_options = getAvailableEnvs()
 
         self.env_menu = OptionMenu(master, self.env_variable, *self.env_options)
@@ -70,18 +81,49 @@ class CreateDemosGUI:
         self.run_button.grid(row=7, column=1)
 
     def setSaveDir(self):
+        """
+        Lets the user set the save directory.
+
+        Opens a select directory dialog and saves the selected directory & updates the label.
+
+        Returns
+        -------
+
+        """
         self.saveDir_variable = filedialog.askdirectory(initialdir="~/", title="select folder to save demos")
         self.saveDirDisplay_label.config(text="Save Dir: {}".format(self.saveDir_variable))
 
     def setLogDir(self):
+        """
+        Lets the user set the log directory.
+
+        Opens a select directory dialog and saves the selected directory & updates the label.
+
+        Returns
+        -------
+
+        """
         self.logDir_variable = filedialog.askdirectory(initialdir="~/", title="select folder to log demos")
         self.logDirDisplay_label.config(text="Log Dir: {}".format(self.logDir_variable))
 
     def cancel(self):
+        """
+        Closes the window containing this GUI.
+
+        Returns
+        -------
+
+        """
         self.master.destroy()
 
     def tryRun(self):
-        #first try to gather the inputs from the user and check they are all valid
+        """
+        Reads all of the users input and checks that each input is valid.
+
+        Returns
+        -------
+
+        """
         valid = True
 
         stepsStr = self.steps_input.get()
@@ -105,9 +147,32 @@ class CreateDemosGUI:
             valid = False
             print("Please select the environment you want to generate demos for")
 
-        self.run(self.env_variable.get(), steps, numDemos, self.saveDir_variable, self.logDir_variable)
+        if valid:
+            self.run(self.env_variable.get(), steps, numDemos, self.saveDir_variable, self.logDir_variable)
 
-    def run(self, envName, stepsPerDemo, numDemos, saveDir, logDir):
+    def run(self, envName, stepsPerDemo, numDemos, saveDir, logDir=""):
+        """
+        Takes the training parameters and creates demonstrations.
+
+        Uses the given parameters to open a new thread to do the training in to provide progress checks.
+
+        Parameters
+        ----------
+        envName : str
+            The case sensitive id of the environment such as BreakoutNoFrameskip-v4.
+        stepsPerDemo : int
+            The number of training steps between each demonstration that is created.
+        numDemos : int
+            The number of demonstrations to be created.
+        saveDir : str
+            The full path to the directory to save the demonstrations.
+        logDir : str
+            The full path to the directory to save the training logs.
+
+        Returns
+        -------
+
+        """
         newWindow = Toplevel(self.master)
         gui = ProgressWindow(newWindow)
         # start training on a seperate thread
@@ -116,6 +181,18 @@ class CreateDemosGUI:
         self.training_thread.start()
 
     def load_config(self, filename):
+        """
+        Load a pickled dictionary containing preset values for the user input.
+
+        Parameters
+        ----------
+        filename : str
+            The full path to the configuration file.
+
+        Returns
+        -------
+
+        """
         try:
             config = pickle.load(open(filename, "rb"))
             self.env_variable.set(config.get('env'))
@@ -132,7 +209,18 @@ class CreateDemosGUI:
             return
 
 class ProgressWindow():
+    """
+    This is a GUI window used to actually run the training and creation of demonstrations.
+    """
     def __init__(self, master):
+        """
+        The constructor method that initialises all of the widgets to display the progress.
+
+        Parameters
+        ----------
+        master : TK
+            The window that contains this GUI.
+        """
         self.master = master
         master.title("Creating demonstrations")
 
@@ -143,7 +231,27 @@ class ProgressWindow():
         self.progress.pack()
 
 
-    def run(self, envName, stepsPerDemo, numDemos, saveDir, logDir):
+    def run(self, envName, stepsPerDemo, numDemos, saveDir, logDir=""):
+        """
+        Creates a set of demonstrations in a given directory.
+
+        Parameters
+        ----------
+        envName : str
+            The case sensitive id of the environment such as BreakoutNoFrameskip-v4.
+        stepsPerDemo : int
+            The number of training steps between each demonstration that is created.
+        numDemos : int
+            The number of demonstrations to be created.
+        saveDir : str
+            The full path to the directory to save the demonstrations.
+        logDir : str
+            The full path to the directory to save the training logs.
+
+        Returns
+        -------
+
+        """
         progress_per_demo = 100 / numDemos
         total_progress = 0
         algorithm = "ppo2"

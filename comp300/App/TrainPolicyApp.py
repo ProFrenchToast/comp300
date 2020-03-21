@@ -9,7 +9,16 @@ from baselines import run
 from time import strftime, gmtime
 
 class SetupTrainPolicy:
+    """This is the gui to set up the parameters for the reward learning """
     def __init__(self, master):
+        """
+        The constructor that initialises all the widgets in the window.
+
+        Parameters
+        ----------
+        master : TK
+            The window containing the gui.
+        """
         self.master = master
         master.title("Learning to complete task")
 
@@ -79,22 +88,63 @@ class SetupTrainPolicy:
         self.run_button.grid(row=8, column=1)
 
     def setRewardNetwork(self):
+        """
+        Lets the user set the path to the reward network.
+
+        Opens a select file dialog window and saves the selected file & updates the label.
+
+        Returns
+        -------
+
+        """
         self.reward_variable = filedialog.askopenfilename(initialdir="~/", title="select the learned reward")
         self.rewardDisplay_label.config(text="Selected reward: {}".format(self.reward_variable))
 
     def setSaveDir(self):
+        """
+        Lets the user set the path to save the trained agent to..
+
+        Opens a save file dialog window and saves the given file & updates the label.
+
+        Returns
+        -------
+
+        """
         self.saveDir_variable = filedialog.asksaveasfilename(initialdir="~/", title="Where to save learned reward",
                                                              initialfile="TrainedAgent")
         self.saveDirDisplay_label.config(text="Save Dir: {}".format(self.saveDir_variable))
 
     def setLogDir(self):
+        """
+        Lets the user set the directory to save the logs to..
+
+        Opens a select directory dialog window and saves the selected directory & updates the label.
+
+        Returns
+        -------
+
+        """
         self.logDir_variable = filedialog.askdirectory(initialdir="~/", title="select folder to log demos")
         self.logDirDisplay_label.config(text="Log Dir: {}".format(self.logDir_variable))
 
     def cancel(self):
+        """
+        Closes the current window.
+
+        Returns
+        -------
+
+        """
         self.master.destroy()
 
     def tryRun(self):
+        """
+        Reads all of the users input and checks that each input is valid.
+
+        Returns
+        -------
+
+        """
         valid = True
 
         stepsStr = self.steps_input.get()
@@ -127,6 +177,18 @@ class SetupTrainPolicy:
                               self.saveDir_variable, self.logDir_variable)
 
     def loadConfig(self, filename):
+        """
+        Load a pickled dictionary containing preset values for the user input.
+
+        Parameters
+        ----------
+        filename : str
+            The full path to the configuration file.
+
+        Returns
+        -------
+
+        """
         try:
             config = pickle.load(open(filename, "rb"))
 
@@ -145,7 +207,30 @@ class SetupTrainPolicy:
 
 
 class ActiveTrainPolicy:
+    """
+    This is a GUI window used to actually run the training.
+    """
     def __init__(self, master, env_name, training_steps, reward_network, save_dir, log_dir, config=None):
+        """
+        The constructor that initialises the widgets in the window and then starts the training thread.
+
+        Parameters
+        ----------
+        master : TK
+            The window containing the gui.
+        env_name : str
+            The id of the environment such as BreakoutNoFrameskip-v4.
+        training_steps : int
+            The number of steps to train the agent for.
+        reward_network : str
+            The path to the reward network to use as a replacement for the ground truth reward.
+        save_dir : str
+            The path to save the agent to after training.
+        log_dir: str
+            The directory to save the log data to.
+        config : dict
+            A dictionary containing the preset params for training.
+        """
         self.master =  master
         master.title("Learning to complete task")
 
@@ -162,11 +247,6 @@ class ActiveTrainPolicy:
         self.label.pack()
         self.video_canvas = Canvas(master, width=160, height=200)
         self.video_canvas.pack()
-
-        #not sure how i will even do this because it doesnt produce .mp4 files. I guess probably capture the new window or
-        #take the obs directly and create images.
-        self.video_stream = []
-        self.set_new_video(np.zeros((1, 84, 84, 4), dtype=np.uint8))
 
         # now add the output box
         self.output_frame = Frame(self.master, highlightthickness=10)
@@ -222,6 +302,13 @@ class ActiveTrainPolicy:
         self.trainingThread.start()
 
     def update(self):
+        """
+        Updates the current video canvas with the next frame from the agent learning.
+
+        Returns
+        -------
+
+        """
         ret, frame = self.video_stream.get_frame()
         if ret:
             self.photo = PIL.ImageTk.PhotoImage(image=PIL.Image.fromarray(frame))
@@ -234,11 +321,30 @@ class ActiveTrainPolicy:
         self.master.after(self.delay, self.update)
 
     def set_new_video(self, obs):
+        """
+        Replace the old video with a new one generated from observations.
+
+        Parameters
+        ----------
+        obs : NumPy array
+            The array containing the observations to display as the new video.
+
+        Returns
+        -------
+
+        """
         oldStream = self.video_stream
         self.video_stream = DemoObsAndVideo(obs=obs)
         del oldStream
 
     def __del__(self):
+        """
+        Safely clean the video and then close the window.
+
+        Returns
+        -------
+
+        """
         self.video_stream.__del__()
         self.master.destroy()
 
