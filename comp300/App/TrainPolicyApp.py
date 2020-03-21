@@ -1,12 +1,16 @@
 import threading
-from os import path
-from tkinter import *
-from comp300.App.Utils import *
-import PIL.Image, PIL.ImageTk
-from tkinter import filedialog
 import tkinter.scrolledtext as ScrolledText
-from baselines import run
+from os import path
 from time import strftime, gmtime
+from tkinter import *
+from tkinter import filedialog
+
+import PIL.Image
+import PIL.ImageTk
+from baselines import run
+
+from comp300.App.Utils import *
+
 
 class SetupTrainPolicy:
     """This is the gui to set up the parameters for the reward learning """

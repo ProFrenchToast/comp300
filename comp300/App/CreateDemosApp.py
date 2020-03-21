@@ -1,12 +1,12 @@
+import pickle
+import subprocess
 import threading
+from os import path
 from tkinter import *
 from tkinter import filedialog
 from tkinter.ttk import Progressbar
-from comp300.App.Utils import getAvailableEnvs, makeDemoFromAgent
-from os import path
-import subprocess
-import pickle
 
+from comp300.App.Utils import getAvailableEnvs, makeDemoFromAgent
 
 
 class CreateDemosGUI:

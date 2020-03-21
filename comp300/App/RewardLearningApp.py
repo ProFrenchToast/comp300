@@ -1,11 +1,14 @@
-from tkinter import *
-import tkinter.scrolledtext as ScrolledText
-from tkinter import filedialog
-from comp300.App.Utils import *
-import PIL.Image, PIL.ImageTk
-from os import path
-import re
 import threading
+import tkinter.scrolledtext as ScrolledText
+from os import path
+from tkinter import *
+from tkinter import filedialog
+
+import PIL.Image
+import PIL.ImageTk
+
+from comp300.App.Utils import *
+
 
 class SetupRewardLearning:
     """This is the gui to set up the parameters for the reward learning """
