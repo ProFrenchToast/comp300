@@ -15,8 +15,49 @@ from comp300.LearningModel.AgentClasses import RewardNetwork, PPO2Agent
 from comp300.LearningModel.cmd_utils import learnRewardParser
 import sys
 import pickle
-from comp300.App.Utils import DemoObsAndVideo
 
+def getObsFrommp4(videoPath):
+        """
+        Converts a .mp4 file to and numpy array of the observations for a demonstration.
+
+        Returns
+        -------
+        An array of observations each frame.
+        """
+        #open the video file
+        video = cv2.VideoCapture(videoPath)
+        frames = []
+        ret = True
+
+        #get each frame of the video in order and add it to a normal array
+        while ret:
+            ret ,currentFrame = video.read()
+
+            if not ret:
+                break
+
+            #this is the conversion to observations from a frame
+            currentFrame = cv2.cvtColor(currentFrame, cv2.COLOR_BGR2RGB)
+            currentFrame = cv2.cvtColor(currentFrame, cv2.COLOR_RGB2GRAY)
+            currentFrame = cv2.resize(
+                currentFrame, (84, 84), interpolation=cv2.INTER_AREA
+            )
+            currentFrame = np.expand_dims(currentFrame, -1)
+            frames.append(np.array(currentFrame))
+
+        #then stack each set of 4 frames so that it matches the expected input
+        frames = np.array(frames)
+        frame_stack = 4
+        obs = []
+        stacked_obs = np.zeros((1, 84, 84, frame_stack), dtype=np.uint8)
+
+        for currentFrame in range(len(frames)):
+            stacked_obs[..., -frames[currentFrame].shape[-1]:] = frames[currentFrame]
+            obs.append(copy.deepcopy(stacked_obs))
+
+        #note the conversion is not totally accurate because the observations are not encoded into the mp4 file
+        #perfectly by the emulator
+        return np.array(obs)
 
 def Find_all_Models(model_dir):
     """
@@ -432,7 +473,7 @@ def generate_demos_from_videos(video_dir):
     rewards = []
 
     for file in videos:
-        traj = DemoObsAndVideo.getObsFrommp4(join(video_dir,file))
+        traj = getObsFrommp4(join(video_dir,file))
         traj_shaped = traj[:, 0, :, :, :]
         trajectories.append(traj_shaped)
         splitName = file.split(".")

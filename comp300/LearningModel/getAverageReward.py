@@ -42,7 +42,7 @@ def getReward(agent, env, render=False):
             break
     return  totalReward
 
-def getAvgReward(agent, env, iterations, render):
+def getAvgReward(agent, env, iterations, render=False):
     """
     Gets the average reward from an agent in the environment.
 
