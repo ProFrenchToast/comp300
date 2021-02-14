@@ -251,6 +251,7 @@ class ActiveTrainPolicy:
         self.label.pack()
         self.video_canvas = Canvas(master, width=160, height=200)
         self.video_canvas.pack()
+        self.video_stream = MyVideoCapture("/home/patrick/PycharmProjects/comp300/comp300/videos/Agent50MTrain.mp4")
 
         # now add the output box
         self.output_frame = Frame(self.master, highlightthickness=10)

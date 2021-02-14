@@ -185,7 +185,10 @@ class ChessEnv(Env):
             if self.illegal_moves > 50:
                 self.done = True
                 reward = -100
-            obs, _, self.done, _ = self.step(random.choice(range(len(legalMoves))))
+            doneBefore = self.done
+            obs, secondReward, self.done, _ = self.step(random.choice(range(len(legalMoves))))
+            if not doneBefore and self.done:
+              return obs, secondReward, self.done, {}
             return obs, reward, self.done, {}
 
     def getResults(self):

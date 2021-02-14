@@ -142,7 +142,7 @@ class MyVideoCapture:
              ret, frame = self.vid.read()
              if ret:
                  # Return a boolean success flag and the current frame converted to BGR
-                 return (ret, frame)#cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+                 return (ret, cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
              else:
                  return (ret, None)
          else:
@@ -485,7 +485,7 @@ def train_network(training_obs, training_labels, training_epochs, save_dir, pare
     loss = nn.CrossEntropyLoss()
     learning_rate = 0.00005
     weight_decay = 0
-    network = RewardNetwork(loss)
+    network = RewardNetwork(loss, env_type="atari")
     network.to(device)
     optimiser = optim.Adam(network.parameters(), lr=learning_rate, weight_decay=weight_decay)
 

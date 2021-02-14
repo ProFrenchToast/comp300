@@ -4,6 +4,7 @@ from baselines.common.vec_env import VecFrameStack
 from baselines.common.cmd_util import make_vec_env
 import torch.optim as optim
 from gym import register
+import tensorflow as tf
 
 from os import listdir
 from os.path import isfile, join
@@ -147,6 +148,7 @@ def generate_demos_from_checkpoints(env, agent, model_dir, demosPerModel):
 
     #now loop over each model and load it
     for model in checkpoints:
+        tf.keras.backend.clear_session()
         model_path = join(model_dir, model)
         agent.load(model_path)
 

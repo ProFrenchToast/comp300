@@ -62,7 +62,7 @@ if __name__ == '__main__':
     parser = recordAgentParser()
     args, unknown_args = parser.parse_known_args(sys.argv)
 
-    model_path = args.model_dir
+    model_path = args.model_path
     env_id = args.env
     env_type = args.env_type
 
